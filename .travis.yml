@@ -4,4 +4,4 @@ python:
 install:
     - "python create_python_envs.py"
 script:
-    - "miniconda3/envs/intel3/bin/python umath_mem_bench.py -s 100"
+    - "python run_tests.py"
