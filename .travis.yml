@@ -4,4 +4,4 @@ python:
 install:
     - "python create_python_envs.py"
 script:
-    - "minconda3/envs/intel3/bin/python umath_mem_bench.py -s 100"
+    - "miniconda3/envs/intel3/bin/python umath_mem_bench.py -s 100"

@@ -46,5 +46,5 @@ if not os.path.exists(jp(dir,'envs','intel3')):
 pip_env = jp(dir,'envs','pip3')
 if not os.path.exists(pip_env):
    os.system('%s create -q -y -n pip3 -c intel python=3 pip llvmlite cython' % conda)
-   os.system('%s/bin/pip install numpy scikit-learn toolz numexpr rdtsc timer' % pip_env)
-   os.system('%s/bin/pip install dask numba' % pip_env)
+   os.system('%s/bin/pip -q install numpy scikit-learn toolz numexpr rdtsc timer' % pip_env)
+   os.system('%s/bin/pip -q install dask numba' % pip_env)
