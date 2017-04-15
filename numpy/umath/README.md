@@ -1,5 +1,5 @@
 # Umath optimizations benchmark
-This benchmarks runs arithmetic and transcidental funtions from Numpy along with memory copy function
+This benchmarks runs arithmetic and transcendental funtions from Numpy along with memory copy function
 across various array sizes and various offsets of the array arguments.
 
 ## Usage
