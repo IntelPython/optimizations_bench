@@ -1,4 +1,3 @@
-#!/bin/bash -x
 # Copyright (c) 2017, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,20 +24,27 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#export ACCEPT_INTEL_PYTHON_EULA=yes
-DIR=$HOME/miniconda3
-CONDA=$DIR/bin/conda
-[ -x $CONDA ] || (
-     mkdir -p $DIR
-     cd $DIR/..
-     [ -f Miniconda3-latest-Linux-x86_64.sh ] || curl -O https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-     cd $DIR
-     bash ../Miniconda3-latest-Linux-x86_64.sh -b -p $DIR -f
-     [ -x $CONDA ] || exit 1
-)
-[ -d $DIR/envs/intel3 ] || $CONDA create -y -n intel3 -c intel python=3 numpy numexpr numexpr numba scikit-learn tbb cython
-[ -d $DIR/envs/pip3 ] || (
-     $CONDA create -y -n pip3 -c intel python=3 pip llvmlite cython
-     $DIR/envs/pip3/bin/pip install numpy scikit-learn toolz numexpr
-     $DIR/envs/pip3/bin/pip install dask numba
-)
+import os
+import urllib.request
+from os.path import join as jp
+
+dir = 'miniconda3'
+conda = jp(dir,'bin','conda')
+miniconda = 'Miniconda3-latest-Linux-x86_64.sh'
+miniconda_url = 'https://repo.continuum.io/miniconda/' + miniconda
+
+if not os.path.exists(conda):
+   if not os.path.exists(dir):
+      os.makedirs(dir)
+   if not os.path.exists(miniconda):
+      urllib.request.urlretrieve(miniconda_url, miniconda)
+   os.system('chmod +x %s; ./%s -b -p %s -f' % (miniconda,miniconda,dir))
+
+if not os.path.exists(jp(dir,'envs','intel3')):
+   os.system('%s create -q -y -n intel3 -c intel python=3 numpy numexpr numexpr numba scikit-learn tbb cython' % conda)
+
+pip_env = jp(dir,'envs','pip3')
+if not os.path.exists(pip_env):
+   os.system('%s create -q -y -n pip3 -c intel python=3 pip llvmlite cython' % conda)
+   os.system('%s/bin/pip -q install numpy scikit-learn toolz numexpr rdtsc timer' % pip_env)
+   os.system('%s/bin/pip -q install dask numba' % pip_env)
