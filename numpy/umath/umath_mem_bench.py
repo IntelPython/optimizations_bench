@@ -33,7 +33,6 @@ import gc
 import numpy.core.umath as ncu
 import numpy as np
 import argparse
-from collections import OrderedDict
 
 try:
     from itimer import itime_rdtsc as clock
@@ -51,38 +50,70 @@ except:
 argParser = argparse.ArgumentParser(prog="numpy_tests.py",
                                     description="tool to help automating testing",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+def_sizes = [1000, 8000, 32000, 100000, 1000000, 2500000]
+def_funcs = ['+', '-', '*', '/', 'sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh',
+    #'fabs', 'floor', 'ceil', 'rint', 'trunc',
+    'sqrt', 'log10', 'log', 'exp', 'expm1', 'arcsin', 'erf',
+    'arccos', 'arctan', 'arcsinh', 'arccosh', 'arctanh', 'log1p', 'exp2', 'log2', 'copyto']
+def_impls = ['numpy', 'numexpr']
 
 argParser.add_argument('-l', '--log',       default=None,      help="log")
-argParser.add_argument('-i', '--iteration', default='?',       help="iteration")
-argParser.add_argument('-p', '--prefix',    default='?',       help="prefix string")
-argParser.add_argument('-s', '--size',      default=None,      help="size of array")
-argParser.add_argument('-f', '--func',      default=None,      help="single function to test")
+argParser.add_argument('-p', '--prefix',    default='@',       help="prefix string")
+argParser.add_argument('-s', '--size',      default=def_sizes, help="size of array", nargs='+', type=int)
+argParser.add_argument('-f', '--func',      default=def_funcs, help="function(s) to test", nargs='+', type=str)
+argParser.add_argument('-m', '--impl',      default=def_impls, help="implementation(s) to test", nargs='+', type=str)
 argParser.add_argument('-g', '--goal-time', default=1,         help="goal for measured time in ms")
 argParser.add_argument('-r', '--repeats',   default=30,        help="repeat experements and get minimum time")
 argParser.add_argument('-o', '--offsets',   default=(0,1,2,4), help="Offset from aligned in elements", nargs='+', type=int)
 argParser.add_argument('-v', '--verbose',   default=False,     help="print additonal info", action="store_true")
 args = argParser.parse_args()
+assert type(args.func) is list
+assert type(args.impl) is list
+assert type(args.size) is list
+
+for impl in args.impl:
+    if impl == "numexpr":
+        import numexpr
+    if impl == "numba":
+        import numba
 
 goalTime = float(args.goal_time)/1000.
-array_sizes = [1000, 8000, 32000, 100000, 1000000, 2500000] if args.size is None else [int(args.size)]
-func_list = ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'fabs', 'floor', 'ceil', 'rint', 'trunc', 'sqrt', 'log10',
-             'log', 'exp', 'expm1', 'arcsin', 'arccos', 'arctan', 'arcsinh', 'arccosh', 'arctanh', 'log1p', 'exp2',
-             'log2', 'copyto'] if args.func is None else [str(args.func)]
-binary_ops =  OrderedDict([('+', np.add), ('*', np.multiply), ('/',  np.true_divide), ('-', np.subtract)]) if args.func is None else {}
 scalararraytypes = range(0, 3)
 np_types = [np.float64]
-totalBinaryMinutes = (len(binary_ops)*len(scalararraytypes)*len(np_types)*len(array_sizes))*2.8/60.0 #  represents time to figure out internalCount and result
-totalUnaryMinutes = (len(func_list)*len(np_types)*len(array_sizes))*2.8/60.0 #  represents time to figure out internalCount and result
-if args.log != None:
-    print("Binary loops have %s operations, %s array/scalar combinations, %s types, %s array sizes.\n" \
-          "If each operation takes 0.5 seconds to execute, binary loops will complete in %s minutes. " \
-          % (len(binary_ops), str(len(scalararraytypes)), str(len(np_types)), str(len(array_sizes)), totalBinaryMinutes))
-    print("Unary loops have %s operations, %s types, %s array sizes.\n" \
-          "If each operation takes 0.5 seconds to execute, binary loops will complete in %s minutes. " \
-          % (len(func_list), str(len(np_types)), str(len(array_sizes)), totalUnaryMinutes))
-    print("Total time it takes to run this Python script: %s minutes" % (totalBinaryMinutes + totalUnaryMinutes))
-
 overheadMin = 0
+
+
+def getFuncImpl(func, impl):
+  if len(func) <= 2: # binary
+    if impl == "numexpr":
+        f = lambda x,y,out: numexpr.evaluate("x %s y"%func, out=out)
+    elif impl == 'numpy':
+        f = {'+': np.add, '*': np.multiply, '/':  np.true_divide, '-': np.subtract}[func]
+    else:
+        raise NotImplementedError(impl)
+    return f, func
+  else: # unary
+    if impl == "numexpr":
+        if func == 'invsqrt':
+            f = lambda x,out: numexpr.evaluate("1/sqrt(x)", out=out)
+        else:
+            f = lambda x,out: numexpr.evaluate("%s(x)"%func, out=out)
+    elif impl == 'numpy':
+        try:
+            f = getattr(np.core.umath, func, getattr(np, func))
+        except:
+            if func == "erf":
+                from scipy.special import erf
+                f = erf
+            elif func == "invsqrt":
+                f = lambda x, y: 1/np.sqrt(x, y)
+            else:
+                raise
+    else:
+        raise NotImplementedError(impl)
+    return f, False
+
+
 def emptyF(x, y):
     pass
 
@@ -147,17 +178,14 @@ def clOffset(a):
 
 overheadMin = runBench(emptyF, 0, 0, internalCount=100000, overhead=0)
 print("Overhead time per loop iteration = ",  overheadMin, " clock = ", clock_name)
-print("iteration, prefix, op, type, iterations, size, CPE:aligned, CPE:max")
+print("Prefix, Implementation, Function, Type, Iterations, Size, CPE:aligned, CPE:max")
 
 for np_type in np_types:
   zoffsets = xoffsets = yoffsets = args.offsets
-  #zoffsets = (0, 0, 0) #2, 4, 6)
-  #xoffsets = (0, 0, 0) #2, 4, 6)
-  #yoffsets = (0, 0, 0) #2, 4, 6)
   znoffs = len(zoffsets)
   xnoffs = len(xoffsets)
   ynoffs = len(yoffsets)
-  for n in array_sizes:
+  for n in args.size:
     z0 = np.asarray(np.random.uniform(2.1, 2.9, size=n+27), dtype=np_type) # if binary function is passed with -f
     x0 = np.asarray(np.random.uniform(0.1, 0.9, size=n+27), dtype=np_type) # 27 is a random non-power-of-two > 16
     y0 = np.asarray(np.random.uniform(1.1, 1.9, size=n+27), dtype=np_type) # > 1 for hyperbolic functions
@@ -173,70 +201,74 @@ for np_type in np_types:
     assert(clOffset(x0) == 0)
     assert(clOffset(y0) == 0)
     assert(np.all(y0 > 0))
-    CPEs = np.zeros([znoffs,xnoffs,ynoffs])
-    for op in binary_ops:
-      np_func = binary_ops[op]
-      for scalararraytype in scalararraytypes:
-        internalCount, internalTime = getInternalCount(np_func, z0, x0, y0)
-        for zi in reversed(range(znoffs)):
-          for xi in reversed(range(xnoffs)):
-            for yi in reversed(range(ynoffs)):
-                clockSum = 0
-                clockOverheadSum = 0
-                zoff = zoffsets[zi]
-                xoff = xoffsets[xi]
-                yoff = yoffsets[yi]
-                z = z0[zoff:n+zoff]
-                x = x0[xoff:n+xoff]
-                y = y0[yoff:n+yoff]
-                assert(x.dtype == np_type and y.dtype == np_type and z.dtype == np_type)
-                assert(x.size == n and y.size == n and z.size == n)
-                # Initialize everything before running the measurements
+
+    for impl in args.impl:
+      for func in args.func:
+        try:
+            np_func, op = getFuncImpl(func, impl)
+            if op: # binary operation
+              CPEs = np.zeros([znoffs,xnoffs,ynoffs])
+              for scalararraytype in scalararraytypes:
+                internalCount, internalTime = getInternalCount(np_func, z0, x0, y0)
+                for zi in reversed(range(znoffs)):
+                  for xi in reversed(range(xnoffs)):
+                    for yi in reversed(range(ynoffs)):
+                        clockSum = 0
+                        clockOverheadSum = 0
+                        zoff = zoffsets[zi]
+                        xoff = xoffsets[xi]
+                        yoff = yoffsets[yi]
+                        z = z0[zoff:n+zoff]
+                        x = x0[xoff:n+xoff]
+                        y = y0[yoff:n+yoff]
+                        assert(x.dtype == np_type and y.dtype == np_type and z.dtype == np_type)
+                        assert(x.size == n and y.size == n and z.size == n)
+                        # Initialize everything before running the measurements
+                        if scalararraytype == 0:
+                            satype = 'C[%d:]=A[%d:]%sB[%d:]' % (zoff, xoff, op, yoff)
+                        elif scalararraytype == 1:
+                            satype = 'C[%d:]=A[%d:]%sscalar' % (zoff, xoff, op)
+                            y = y[0]
+                        elif scalararraytype == 2:
+                            satype = 'C[%d:]=scalar%sA[%d:]' % (zoff, op, yoff)
+                            y = x
+                            x = y[0]
+
+                        CPA_min = runBench(np_func, z, x, y, internalCount=internalCount)
+                        CPE_min = np.true_divide(CPA_min, n)
+                        CPEs[zi][xi][yi] = CPE_min
+                        if args.verbose:
+                            print(args.prefix, impl, satype, np_type.__name__, '% 6d'%internalCount, '% 7d'%n, '% 4.2f'%CPE_min, sep=', ', flush=True)
                 if scalararraytype == 0:
-                    satype = 'C[%d:]=A[%d:]%sB[%d:]' % (zoff, xoff, op, yoff)
+                    satype = ' array%sarray' % op
                 elif scalararraytype == 1:
-                    satype = 'C[%d:]=A[%d:]%sscalar' % (zoff, xoff, op)
-                    y = y[0]
+                    satype = 'array%sscalar' % op
                 elif scalararraytype == 2:
-                    satype = 'C[%d:]=scalar%sA[%d:]' % (zoff, op, yoff)
-                    y = x
-                    x = y[0]
+                    satype = 'scalar%sarray' % op
+                checkResults(CPEs)
+                print(args.prefix, impl, satype, np_type.__name__, '% 7d'%internalCount, '% 7d'%n, '% 6.2f'%CPEs[0][0][0], '% 6.2f'%np.max(CPEs), sep=', ', flush=True)
+            else: # unary operation
+                CPEs = np.zeros([znoffs,xnoffs])
+                a0 = y0 if func in ['arccosh'] else x0 # otherwise it results in a complex number
+                internalCount, internalTime = getInternalCount(np_func, z0, a0)
+                for zi in reversed(range(znoffs)):
+                  for xi in reversed(range(xnoffs)):
+                    clockSum = 0
+                    clockOverheadSum = 0
+                    zoff = zoffsets[zi]
+                    xoff = xoffsets[xi]
+                    x = a0[xoff:n+xoff]
+                    z = z0[zoff:n+zoff]
+                    if func in ['copyto']: # source and destination are inversed
+                        x, z = z, x  # TODO: still affects other functions after copyto()
 
-                CPA_min = runBench(np_func, z, x, y, internalCount=internalCount)
-                CPE_min = np.true_divide(CPA_min, n)
-                CPEs[zi][xi][yi] = CPE_min
-                if args.verbose:
-                    print(args.iteration, args.prefix, satype, np_type.__name__, '% 6d'%internalCount, '% 7d'%n, '% 4.2f'%CPE_min, sep=', ', flush=True)
-        if scalararraytype == 0:
-            satype = '    A%sA' % op
-        elif scalararraytype == 1:
-            satype = '    A%ss' % op
-        elif scalararraytype == 2:
-            satype = '    s%sA' % op
-        checkResults(CPEs)
-        print(args.iteration, args.prefix, satype, np_type.__name__, '% 7d'%internalCount, '% 7d'%n, '% 6.2f'%CPEs[0][0][0], '% 6.2f'%np.max(CPEs), sep=', ', flush=True)
-
-    CPEs = np.zeros([znoffs,xnoffs])
-    for func in func_list:
-        a0 = y0 if func in ['arccosh'] else x0 # otherwise it results in a complex number
-        np_func = getattr(np.core.umath, func, getattr(np, func))
-        internalCount, internalTime = getInternalCount(np_func, z0, a0)
-        for zi in reversed(range(znoffs)):
-          for xi in reversed(range(xnoffs)):
-            clockSum = 0
-            clockOverheadSum = 0
-            zoff = zoffsets[zi]
-            xoff = xoffsets[xi]
-            x = a0[xoff:n+xoff]
-            z = z0[zoff:n+zoff]
-            if func in ['copyto']: # source and destination are inversed
-                x, z = z, x  # TODO: still affects other functions after copyto()
-
-            CPA_min = runBench(np_func, z, x, internalCount=internalCount)
-            CPE_min = np.true_divide(CPA_min, n)
-            CPEs[zi][xi] = CPE_min
-            if args.verbose:
-                satype = 'c[%d:]=% 7s(a[%d:])'%(clOffset(z)/z.itemsize, func, clOffset(x)/x.itemsize)
-                print(args.iteration, args.prefix, satype, np_type.__name__, '% 6d'%internalCount, '% 7d'%n, '% 4.2f'%CPE_min, sep=', ', flush=True)
-        checkResults(CPEs)
-        print(args.iteration, args.prefix, '% 7s'%func, np_type.__name__, '% 7d'%internalCount, '% 7d'%n, '% 6.2f'%CPEs[0][0], '% 6.2f'%np.max(CPEs), sep=', ', flush=True)
+                    CPA_min = runBench(np_func, z, x, internalCount=internalCount)
+                    CPE_min = np.true_divide(CPA_min, n)
+                    CPEs[zi][xi] = CPE_min
+                    if args.verbose:
+                        satype = 'c[%d:]=% 7s(a[%d:])'%(clOffset(z)/z.itemsize, func, clOffset(x)/x.itemsize)
+                        print(args.prefix, impl, satype, np_type.__name__, '% 6d'%internalCount, '% 7d'%n, '% 4.2f'%CPE_min, sep=', ', flush=True)
+                checkResults(CPEs)
+                print(args.prefix, impl, '% 7s'%func, np_type.__name__, '% 7d'%internalCount, '% 7d'%n, '% 6.2f'%CPEs[0][0], '% 6.2f'%np.max(CPEs), sep=', ', flush=True)
+        except Exception as e:
+            print("Failed while executing %s for %s: %s" % (func, impl, str(e)))
