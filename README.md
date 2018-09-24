@@ -18,4 +18,4 @@ To install Python environments from Intel channel along with pip-installed packa
 
 ### Random number generation
 - To run python benchmarks: `python numpy/random/rng.py`
-- To compile and run native benchmarks (requires icc): `make -C numpy/rng`
+- To compile and run native benchmarks (requires icc): `make -C numpy/random`
