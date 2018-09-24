@@ -13,4 +13,4 @@ To install Python environments from Intel channel along with pip-installed packa
 
 ## Run benchmarks
 - To run python benchmarks: `python numpy/umath/umath_mem_bench.py`
-- To compile and run native benchmarks (requires icc): `make -C native`
+- To compile and run native benchmarks (requires icc): `make -C numpy/umath`
