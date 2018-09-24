@@ -1,0 +1,193 @@
+/*
+ * Copyright (C) 2017 Intel Corporation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include "mkl.h"
+#include <assert.h>
+#include "rdtsc.h"
+#include <complex.h>
+#include <mathimf.h>
+
+#define SEED 77777
+
+static void _print_mkl_version() {
+  int len = 198;
+  char buf[198];
+
+  mkl_get_version_string(buf, len);
+  printf("\nMKL Version: %s\n", buf);
+}
+
+#define EXPERIMS_N 3
+#define REPS_N 5000
+
+typedef struct experiment_t {
+  long array_size;
+  long repetitions;
+} experiment_t;
+
+static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
+  int i;
+  long s, r;
+  long r_max = (1 << 16);
+
+  s = (1 << s0);
+  r = (2 << n);
+
+  for(i=0; i < n; i++) {
+    list[i].array_size = s;
+    list[i].repetitions = (r > r_max) ? r_max : r;
+    s <<= 1;
+    r >>= 1;
+  }
+
+  return;
+}
+
+int main(int argc, char **argv) {
+  VSLStreamStatePtr stream;
+  double *x1, *x2, *y, CPE, CPE_min;
+  double c = 4321.43;
+  int err = 0;
+  size_t j, i, k, l;
+  const double d_zero = 0.0, d_one = 1.0;
+  experiment_t experims[EXPERIMS_N];
+  rdtsc_type t0, t1;
+  long int arraySize = argc>1?atol(argv[1]):2500000;
+  char *prefix = argc>2?argv[2]:"@";
+
+  populate_experiment_sizes(experims, 2, EXPERIMS_N);
+
+  err = vslNewStream(&stream, VSL_BRNG_SFMT19937, SEED);
+  assert(err == VSL_STATUS_OK);
+
+  {
+    long int n = arraySize;
+
+    x1 = (double *) mkl_malloc( n*sizeof(double), 64);
+    x2 = (double *) mkl_malloc( n*sizeof(double), 64);
+    y  = (double *) mkl_malloc( n*sizeof(double), 64);
+
+    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream, n, x1, d_zero, d_one);
+    assert(err == VSL_STATUS_OK);
+    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream, n, x2, d_zero, d_one);
+    assert(err == VSL_STATUS_OK);
+  }
+
+  for(int experiments = 0; experiments<EXPERIMS_N; experiments++) {
+
+/**begin repeat
+ *  #BEGIN =
+    size_t reps = REPS_N;
+    long int n = arraySize;
+    CPE_min = 100000000.0;
+    for (j=0; j < reps; j++) {
+      t0 = timer_rdtsc();
+    #
+ *  #END = 
+      t1 = timer_rdtsc();
+      CPE = ((double)(t1 - t0)/n);
+      CPE_min = CPE < CPE_min ? CPE : CPE_min;
+    }
+ #
+ */
+
+/**begin repeat1
+ *  #func = +, -, *, /#
+ *  #vml = Add, Sub, Mul, Div#
+ */
+  { @BEGIN@
+      vd@vml@(n, x1, x2, y);
+    @END@
+    printf("%s, VML, array@func@array, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+  { @BEGIN@
+      #pragma omp parallel for
+      for(l=0; l < n; l++) {
+        y[l] = x1[l] @func@ x2[l];
+      }
+    @END@
+    printf("%s, SVML, array@func@array, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+
+/**end repeat1**/
+
+/**begin repeat1
+ *  #func=   +,   -,   *#
+ *  #in1 =   n,   n,   n#
+ *  #in2 =  x1,  x1,  x1#
+ *  #in3 =  x1,  x1,  x1#
+ *  #in4 = 1.0, 1.0,   c#
+ *  #in5 =   c,  -c, 0.0#
+ *  #in6 = 0.0, 0.0, 0.0#
+ *  #in7 = 1.0, 1.0, 1.0#
+ *  #in8 =   y,   y,   y#
+ */
+
+  { @BEGIN@
+      vdLinearFrac(@in1@, @in2@, @in3@, @in4@, @in5@, @in6@, @in7@, @in8@);
+    @END@
+    printf("%s, VML, array@func@scalar, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+  { @BEGIN@
+      #pragma omp parallel for
+      for(l=0; l < n; l++) {
+        y[l] = x1[l] @func@ c;
+      }
+    @END@
+    printf("%s, SVML, array@func@scalar, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+/**end repeat1**/
+
+  { @BEGIN@
+      #pragma omp parallel for
+      for(l=0; l < n; l++) {
+        y[l] = x1[l] / c;
+      }
+    @END@
+    printf("%s, SVML, array/scalar, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+/**begin repeat1
+ *  #func = log10, exp, erf, invsqrt#
+ *  #vml =  Log10, Exp, Erf, InvSqrt#
+ */
+
+  { @BEGIN@
+      vd@vml@(n, x1, y);
+    @END@
+    printf("%s, VML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+  { @BEGIN@
+      #pragma omp parallel for
+      for(l=0; l < n; l++) {
+        y[l] = @func@(x1[l]);
+      }
+    @END@
+    printf("%s, SVML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
+  }
+
+/**end repeat1**/
+/**end repeat**/
+ }
+
+  if (x1)
+    mkl_free(x1);
+  if (x2)
+    mkl_free(x2);
+  if (y)
+    mkl_free(y);
+
+  err = vslDeleteStream(&stream);
+  assert(err == VSL_STATUS_OK);
+}
