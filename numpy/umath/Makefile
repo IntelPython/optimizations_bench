@@ -20,17 +20,22 @@ ifeq ($(ACC), ep)
 	CFLAGS += -fimf-precision=low -fimf-domain-exclusion=31 -D_VML_ACCURACY_EP_
 endif
 
+TARGET=umath_$(ACC)
 
-all: umath_precise
-	./umath_precise
+
+all: $(TARGET)
+	./$(TARGET)
 
 clean:
-	rm -f umath_precise umath_bench.c
+	rm -f umath_ha umath_la umath_ep umath_bench.c
 
-umath_precise: umath_bench.c
-	$(CC) umath_bench.c $(CPPFLAGS) $(CFLAGS) -o umath_precise
+compile: $(TARGET)
+
+
+$(TARGET): umath_bench.c
+	$(CC) umath_bench.c $(CPPFLAGS) $(CFLAGS) -o $(TARGET)
 
 umath_bench.c: umath_bench.c.src
 	$(PYTHON) -m numpy.distutils.conv_template umath_bench.c.src
 
-.PHONY: all clean
+.PHONY: all clean compile
