@@ -16,15 +16,15 @@ void SVD::make_args(int size) {
 
     mat_size = n * n;
 
-    /* input matrix */
+    // input matrix
     a_mat = make_random_mat(mat_size);
     r_mat = make_mat(mat_size);
 
-    /* U, V**T matrices */
+    // U, V**T matrices
     u_mat = make_mat(mat_size);
     vt_mat = make_mat(mat_size);
 
-    /* singular values */
+    // singular values
     s_vec = make_mat(n);
 }
 
@@ -33,7 +33,7 @@ void SVD::copy_args() {
 }
 
 void SVD::compute() {
-    /* compute svd decomposition */
+    // compute svd decomposition
     int info = LAPACKE_dgesdd(LAPACK_COL_MAJOR, 'A', n, n, r_mat, lda, s_vec,
                               u_mat, lda, vt_mat, lda);
     assert(info == 0);

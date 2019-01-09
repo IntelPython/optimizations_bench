@@ -17,10 +17,10 @@ void Cholesky::make_args(int size) {
     mat_size = n * n;
     int r_size = mat_size;
 
-    /* input matrix */
+    // input matrix
     x_mat = make_random_mat(mat_size);
 
-    /* matrix for result */
+    // matrix for result
     r_mat = make_mat(r_size);
     memset(r_mat, 0, r_size * sizeof(*r_mat));
     // Set r_mat to identity matrix as in python bench
@@ -40,7 +40,7 @@ void Cholesky::copy_args() {
 }
 
 void Cholesky::compute() {
-    /* compute cholesky decomposition */
+    // compute cholesky decomposition
     int info = LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', n, r_mat, lda);
     assert(info == 0);
 }

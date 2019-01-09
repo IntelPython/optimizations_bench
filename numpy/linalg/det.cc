@@ -20,14 +20,14 @@ void Det::make_args(int size) {
     int mat_size = m * n;
     assert(m == n);
 
-    /* input matrix */
+    // input matrix
     x_mat = make_random_mat(mat_size);
 
-    /* list of pivots */
+    // list of pivots
     ipiv = (int *) mkl_malloc(mn_min * sizeof(int), 64);
     assert(ipiv);
 
-    /* matrix for result */
+    // matrix for result
     r_mat = make_random_mat(mat_size);
 
     copy_args();
@@ -38,7 +38,7 @@ void Det::copy_args() {
 }
 
 void Det::compute() {
-    /* compute pivoted lu decomposition */
+    // compute pivoted lu decomposition
     int info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, m, n, r_mat, lda, ipiv);
     assert(info == 0);
 

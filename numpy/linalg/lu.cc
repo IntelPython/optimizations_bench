@@ -22,23 +22,23 @@ void LU::make_args(int size) {
     u_size = mn_min * n;
     p_size = m * m;
 
-    /* input matrix */
+    // input matrix
     x_mat = make_random_mat(mat_size);
 
-    /* list of pivots */
+    // list of pivots
     ipiv = (int *) mkl_malloc(mn_min * sizeof(int), 64);
     assert(ipiv);
 
-    /* matrix for result */
+    // matrix for result
     r_mat = make_mat(r_size);
 
-    /* lower-triangular matrix */
+    // lower triangular matrix
     l_mat = make_random_mat(l_size);
 
-    /* upper triangular matrix */
+    // upper triangular matrix
     u_mat = make_random_mat(u_size);
 
-    /* permutation matrix */
+    // permutation matrix
     p_mat = make_random_mat(p_size);
 
     copy_args();
@@ -50,7 +50,7 @@ void LU::copy_args() {
 }
 
 void LU::compute() {
-    /* compute pivoted lu decomposition */
+    // compute pivoted lu decomposition
     int info = LAPACKE_dgetrf(LAPACK_COL_MAJOR, m, n, r_mat, lda, ipiv);
     assert(info == 0);
 
@@ -60,7 +60,7 @@ void LU::compute() {
     memset(l_mat, 0, l_size * sizeof(double));
     memset(u_mat, 0, u_size * sizeof(double));
 
-    /* extract L and U matrix elements from r_mat */
+    // extract L and U matrix elements from r_mat
 #pragma ivdep
     for (int i = 0; i < m; i++) {
 #pragma ivdep
@@ -78,7 +78,7 @@ void LU::compute() {
         }
     }
 
-    /* make a diagonal matrix (m,m) */
+    // make a diagonal matrix (m,m)
     memset(p_mat, 0, p_size * sizeof(double));
     for (int i = 0; i < m; i++)
         p_mat[i * (m + 1)] = 1.0;
