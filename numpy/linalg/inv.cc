@@ -14,9 +14,12 @@ Inv::Inv() {
 }
 
 Inv::~Inv() {
-    if (r_mat) mkl_free(r_mat);
-    if (ipiv) mkl_free(ipiv);
-    if (x_mat) mkl_free(x_mat);
+    if (r_mat)
+        mkl_free(r_mat);
+    if (ipiv)
+        mkl_free(ipiv);
+    if (x_mat)
+        mkl_free(x_mat);
 }
 
 void Inv::make_args(int size) {

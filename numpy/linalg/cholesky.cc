@@ -46,6 +46,8 @@ void Cholesky::compute() {
 }
 
 Cholesky::~Cholesky() {
-    if (r_mat) mkl_free(r_mat);
-    if (x_mat) mkl_free(x_mat);
+    if (r_mat)
+        mkl_free(r_mat);
+    if (x_mat)
+        mkl_free(x_mat);
 }

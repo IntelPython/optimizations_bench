@@ -12,10 +12,14 @@ Dot::Dot() {
 }
 
 Dot::~Dot() {
-    if (a_mat) mkl_free(a_mat);
-    if (b_mat) mkl_free(b_mat);
-    if (c_mat) mkl_free(c_mat);
-    if (r_mat) mkl_free(r_mat);
+    if (a_mat)
+        mkl_free(a_mat);
+    if (b_mat)
+        mkl_free(b_mat);
+    if (c_mat)
+        mkl_free(c_mat);
+    if (r_mat)
+        mkl_free(r_mat);
 }
 
 void Dot::make_args(int size) {

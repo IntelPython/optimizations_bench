@@ -46,8 +46,12 @@ void QR::compute() {
 }
 
 QR::~QR() {
-    if (x_mat) mkl_free(x_mat);
-    if (x_mat_init) mkl_free(x_mat_init);
-    if (r_mat) mkl_free(r_mat);
-    if (tau_vec) mkl_free(tau_vec);
+    if (x_mat)
+        mkl_free(x_mat);
+    if (x_mat_init)
+        mkl_free(x_mat_init);
+    if (r_mat)
+        mkl_free(r_mat);
+    if (tau_vec)
+        mkl_free(tau_vec);
 }

@@ -40,8 +40,12 @@ void SVD::compute() {
 }
 
 SVD::~SVD() {
-    if (a_mat) mkl_free(a_mat);
-    if (u_mat) mkl_free(u_mat);
-    if (vt_mat) mkl_free(vt_mat);
-    if (s_vec) mkl_free(s_vec);
+    if (a_mat)
+        mkl_free(a_mat);
+    if (u_mat)
+        mkl_free(u_mat);
+    if (vt_mat)
+        mkl_free(vt_mat);
+    if (s_vec)
+        mkl_free(s_vec);
 }

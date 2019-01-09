@@ -88,11 +88,17 @@ void LU::compute() {
 }
 
 LU::~LU() {
-    if (l_mat) mkl_free(l_mat);
-    if (u_mat) mkl_free(u_mat);
-    if (r_mat) mkl_free(r_mat);
-    if (p_mat) mkl_free(p_mat);
+    if (l_mat)
+        mkl_free(l_mat);
+    if (u_mat)
+        mkl_free(u_mat);
+    if (r_mat)
+        mkl_free(r_mat);
+    if (p_mat)
+        mkl_free(p_mat);
 
-    if (ipiv) mkl_free(ipiv);
-    if (x_mat) mkl_free(x_mat);
+    if (ipiv)
+        mkl_free(ipiv);
+    if (x_mat)
+        mkl_free(x_mat);
 }
