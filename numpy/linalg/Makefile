@@ -11,9 +11,16 @@ TARGET = linalg
 BENCHES = cholesky det dot inv lu qr svd
 SOURCES = $(addsuffix .cc,$(BENCHES)) linalg.cc
 
+CLANG_FORMAT = clang-format
+
 $(TARGET): $(SOURCES:.cc=.o)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 clean:
 	rm -f $(TARGET) *.o
+
+format:
+	$(CLANG_FORMAT) -i $(SOURCES)
+
+.PHONY: clean format
 
