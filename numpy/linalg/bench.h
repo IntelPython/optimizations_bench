@@ -66,7 +66,7 @@ class Bench {
 
         double *make_random_mat(int size) {
             double *mat = make_mat(size);
-            random.init_mat(mat,size);
+            random.init_mat(mat, size);
             return mat;
         }
 
