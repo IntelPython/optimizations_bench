@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <cstring>
 #include "inv.h"
+#include <cstring>
 
 Inv::Inv() {
     x_mat = 0;
@@ -23,7 +23,7 @@ void Inv::make_args(int size) {
     n = size;
     m = size;
     lda = size;
-    mat_size = m*n;
+    mat_size = m * n;
     int mn_min = min(m, n);
 
     assert(m == n);

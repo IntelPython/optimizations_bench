@@ -4,18 +4,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <cstring>
 #include "svd.h"
+#include <cstring>
 
 SVD::SVD() {
     a_mat = r_mat = u_mat = vt_mat = s_vec = 0;
 }
 
-void
-SVD::make_args(int size) {
+void SVD::make_args(int size) {
     n = lda = size;
 
-    mat_size = n*n;
+    mat_size = n * n;
 
     /* input matrix */
     a_mat = make_random_mat(mat_size);

@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+AlignAfterOpenBracket: true
+AllowShortFunctionsOnASingleLine: None
+SpaceAfterCStyleCast: true
+Standard: Cpp11
+AllowShortIfStatementsOnASingleLine: true

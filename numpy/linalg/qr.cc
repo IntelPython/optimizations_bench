@@ -4,18 +4,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <cstring>
 #include "qr.h"
+#include <cstring>
 
 QR::QR() {
     x_mat = x_mat_init = r_mat = tau_vec = 0;
 }
 
-void
-QR::make_args(int size) {
+void QR::make_args(int size) {
     n = lda = size;
 
-    mat_size = n*n;
+    mat_size = n * n;
 
     /* input matrix */
     x_mat_init = make_random_mat(mat_size);
@@ -42,7 +41,7 @@ void QR::compute() {
 
     /* numpy computes upper triangular part of A even when mode='raw' */
     for (int i = 0; i < n; i++) {
-        memcpy(&r_mat[i*n], &x_mat[i*n], (i+1) * sizeof(*r_mat));
+        memcpy(&r_mat[i * n], &x_mat[i * n], (i + 1) * sizeof(*r_mat));
     }
 }
 

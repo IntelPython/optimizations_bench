@@ -4,21 +4,20 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <cstring>
 #include "det.h"
+#include <cstring>
 
 Det::Det() {
     r_mat = x_mat = 0;
     ipiv = 0;
 }
 
-void
-Det::make_args(int size) {
+void Det::make_args(int size) {
     n = size;
     m = size;
     mn_min = min(m, n);
     lda = size;
-    int mat_size = m*n;
+    int mat_size = m * n;
     assert(m == n);
 
     /* input matrix */
@@ -44,9 +43,9 @@ void Det::compute() {
     assert(info == 0);
 
     double t = 1.0;
-    int i,j;
-    for(i=0, j=0; i < mn_min; i++, j+= lda+1) {
-        t *= (ipiv[i]==i) ? r_mat[j] : -r_mat[j];
+    int i, j;
+    for (i = 0, j = 0; i < mn_min; i++, j += lda + 1) {
+        t *= (ipiv[i] == i) ? r_mat[j] : -r_mat[j];
     }
     result = t;
 }

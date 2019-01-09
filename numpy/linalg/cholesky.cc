@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <cstring>
 #include "cholesky.h"
+#include <cstring>
 
 Cholesky::Cholesky() {
     x_mat = r_mat = 0;
@@ -14,7 +14,7 @@ Cholesky::Cholesky() {
 void Cholesky::make_args(int size) {
     n = lda = size;
 
-    mat_size = n*n;
+    mat_size = n * n;
     int r_size = mat_size;
 
     /* input matrix */
@@ -25,9 +25,10 @@ void Cholesky::make_args(int size) {
     memset(r_mat, 0, r_size * sizeof(*r_mat));
     // Set r_mat to identity matrix as in python bench
     for (int i = 0; i < n; i++) {
-        r_mat[i*n+i] = 1;
+        r_mat[i * n + i] = 1;
     }
-    cblas_dsyrk(CblasColMajor, CblasUpper, CblasNoTrans, n, n, 1.0, x_mat, lda, n, r_mat, lda);
+    cblas_dsyrk(CblasColMajor, CblasUpper, CblasNoTrans, n, n, 1.0, x_mat, lda,
+                n, r_mat, lda);
 
     // we now have r_mat = x_mat * x_mat' + n * np.eye(n)
     // copy back into x_mat
