@@ -17,6 +17,6 @@ class LU : public Bench {
     private:
         int *ipiv;
         double *x_mat, *r_mat, *l_mat, *u_mat, *p_mat;
-        int m,n,lda,mn_min;
+        int m, n, lda, mn_min;
         int l_size, u_size, p_size, mat_size;
 };

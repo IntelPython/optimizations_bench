@@ -39,6 +39,6 @@ void Dot::compute() {
     double beta = 0.0;
 
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
-            n, n, k, alpha, a_mat, k, b_mat, n, beta, r_mat, n);
+                n, n, k, alpha, a_mat, k, b_mat, n, beta, r_mat, n);
 }
 

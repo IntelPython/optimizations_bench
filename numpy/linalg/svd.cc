@@ -36,7 +36,7 @@ void SVD::copy_args() {
 void SVD::compute() {
     /* compute svd decomposition */
     int info = LAPACKE_dgesdd(LAPACK_COL_MAJOR, 'A', n, n, r_mat, lda, s_vec,
-            u_mat, lda, vt_mat, lda);
+                              u_mat, lda, vt_mat, lda);
     assert(info == 0);
 }
 

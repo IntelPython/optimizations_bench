@@ -12,8 +12,8 @@
 #include "qr.h"
 #include "svd.h"
 
-#include "rdtsc.h"
 #include <cstdlib>
+#include <chrono>
 #include <getopt.h>
 #include <iostream>
 #include <map>
@@ -122,17 +122,18 @@ int main(int argc, char *argv[]) {
             real_bench->compute();
             real_bench->copy_args();
 
-            auto t0 = timer_rdtsc();
+            auto t0 = std::chrono::system_clock::now();
             for (int j = 0; j < reps; j++) {
                 real_bench->compute();
             }
-            auto t1 = timer_rdtsc();
+            auto t1 = std::chrono::system_clock::now();
+            std::chrono::duration<double> timedelta = t1 - t0;
             real_bench->copy_args();
 
             std::cout << prefix << ",";
             std::cout << bench << ",";
             std::cout << n << ",";
-            std::cout << (double) (t1 - t0) / getHz() / reps;
+            std::cout << (double) timedelta.count() / reps;
             std::cout << std::endl;
         }
     }
