@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
             if (intarg < 1) {
                 std::cerr << "error: non-positive integer argument: ";
                 std::cerr << optarg << std::endl;
+                return EXIT_FAILURE;
             }
             break;
         case 'p':
@@ -112,21 +113,22 @@ int main(int argc, char *argv[]) {
 
         Bench *real_bench = all_benches[bench];
         real_bench->make_args(n);
-        real_bench->copy_args();
 
         for (int i = 0; i < samples; i++) {
 
-            // warm up
-            real_bench->compute();
-            real_bench->copy_args();
+            std::chrono::duration<double> timedelta(0.0);
 
-            auto t0 = std::chrono::system_clock::now();
-            for (int j = 0; j < reps; j++) {
-                real_bench->compute();
-            }
-            auto t1 = std::chrono::system_clock::now();
-            std::chrono::duration<double> timedelta = t1 - t0;
+            // warm up
             real_bench->copy_args();
+            real_bench->compute();
+
+            for (int j = 0; j < reps; j++) {
+                real_bench->copy_args();
+                auto t0 = std::chrono::system_clock::now();
+                real_bench->compute();
+                auto t1 = std::chrono::system_clock::now();
+                timedelta += t1 - t0;
+            }
 
             std::cout << prefix << ",";
             std::cout << bench << ",";
@@ -134,5 +136,10 @@ int main(int argc, char *argv[]) {
             std::cout << (double) timedelta.count() / reps;
             std::cout << std::endl;
         }
+    }
+
+    // Free benches allocated in heap
+    for (auto const &bench : all_benches) {
+        delete all_benches[bench.first];
     }
 }
