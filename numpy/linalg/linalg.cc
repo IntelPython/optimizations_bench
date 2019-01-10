@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
             if (intarg < 1) {
                 std::cerr << "error: non-positive integer argument: ";
                 std::cerr << optarg << std::endl;
+                return EXIT_FAILURE;
             }
             break;
         case 'p':
