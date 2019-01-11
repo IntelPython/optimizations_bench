@@ -7,6 +7,7 @@
 #include "cholesky.h"
 #include "det.h"
 #include "dot.h"
+#include "eig.h"
 #include "inv.h"
 #include "lu.h"
 #include "qr.h"
@@ -31,6 +32,7 @@ int main(int argc, char *argv[]) {
     std::map<std::string, Bench *> all_benches = {{"cholesky", new Cholesky()},
                                                   {"det", new Det()},
                                                   {"dot", new Dot()},
+                                                  {"eig", new Eig()},
                                                   {"inv", new Inv()},
                                                   {"lu", new LU()},
                                                   {"qr", new QR()},

@@ -8,7 +8,7 @@ override CXXFLAGS += -std=c++11
 LDFLAGS = -lmkl_rt -qopenmp
 
 TARGET = linalg
-BENCHES = cholesky det dot inv lu qr svd
+BENCHES = cholesky det dot eig inv lu qr svd
 SOURCES = $(addsuffix .cc,$(BENCHES)) linalg.cc
 
 CLANG_FORMAT = clang-format
