@@ -43,7 +43,7 @@ void Eig::copy_args() {
 void Eig::compute() {
     // Get right eigenvectors and eigenvalues
     int info = LAPACKE_dgeev(LAPACK_COL_MAJOR, 'N', 'V', n, a_mat, lda, wr_vec,
-                             wi_vec, vl_mat, ldvl, vr_mat, ldvr);
+                             wi_vec, vl_mat, 1, vr_mat, ldvr);
     assert(info == 0);
 
     bool only_real = true;
