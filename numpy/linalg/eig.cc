@@ -55,9 +55,11 @@ void Eig::compute() {
     // Are all eigenvalues purely real? If so, we need not do anything.
     only_real = true;
     for (int i = 0; i < n; i++) {
-        w_vec_complex[i] = CMPLX(wr_vec[i], wi_vec[i]);
-        if (wi_vec[i] != 0.0)
+        if (wi_vec[i] != 0.0) {
             only_real = false;
+            break;
+        }
+        w_vec_complex[i] = CMPLX(wr_vec[i], wi_vec[i]);
     }
 
     if (!only_real) {
