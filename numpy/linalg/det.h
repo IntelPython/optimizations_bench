@@ -12,6 +12,10 @@ class Det : public Bench {
     ~Det();
     void make_args(int size);
     void copy_args();
+    void clean_args();
+    bool test();
+    void print_args();
+    void print_result();
     void compute();
 
   private:

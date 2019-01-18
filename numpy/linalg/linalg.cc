@@ -24,7 +24,9 @@ static const struct option longopts[] = {
     {"reps", required_argument, nullptr, 'r'},
     {"samples", required_argument, nullptr, 's'},
     {"prefix", required_argument, nullptr, 'p'},
+    {"verbose", no_argument, nullptr, 'v'},
     {"help", no_argument, nullptr, 'h'},
+    {"test", no_argument, nullptr, 't'},
     {0, 0, 0, 0}};
 
 int main(int argc, char *argv[]) {
@@ -41,14 +43,15 @@ int main(int argc, char *argv[]) {
     int n = 1000;
     int reps = 3;
     int samples = 1;
+    bool verbose = false;
+    bool test = false;
     std::string prefix = "Native-C";
 
+    int intarg;
     int opt;
     int option_index = 0;
-    while ((opt = getopt_long(argc, argv, "hn:r:s:p:", longopts,
+    while ((opt = getopt_long(argc, argv, "vthn:r:s:p:", longopts,
                               &option_index)) != -1) {
-
-        int intarg;
         switch (opt) {
         case 'n':
         case 'r':
@@ -70,8 +73,14 @@ int main(int argc, char *argv[]) {
         case 'p':
             prefix = optarg;
             break;
+        case 'v':
+            verbose = true;
+            break;
+        case 't':
+            test = true;
+            break;
         case 'h':
-            std::cout << "usage: " << argv[0];
+            std::cout << "usage: " << argv[0] << " [-h] [-t] [-v]";
             std::cout << " [-n SIZE] [-r REPETITIONS] [-s SAMPLES]";
             std::cout << " [BENCHMARKS...]" << std::endl;
             return EXIT_SUCCESS;
@@ -104,7 +113,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    std::cout << "Prefix,Function,Size,Time" << std::endl;
+    if (!test)
+        std::cout << "Prefix,Function,Size,Time" << std::endl;
 
     for (auto const &bench : benches) {
         if (all_benches.count(bench) == 0) {
@@ -114,7 +124,23 @@ int main(int argc, char *argv[]) {
         }
 
         Bench *real_bench = all_benches[bench];
+
+        if (test) {
+            if (!real_bench->test()) {
+                std::cout << "FAIL: " << bench << std::endl;
+            } else {
+                std::cout << "pass: " << bench << std::endl;
+            }
+            if (verbose) {
+                real_bench->print_args();
+                real_bench->print_result();
+            }
+            continue;
+        }
         real_bench->make_args(n);
+
+        if (verbose)
+            real_bench->print_args();
 
         for (int i = 0; i < samples; i++) {
 
@@ -138,6 +164,9 @@ int main(int argc, char *argv[]) {
             std::cout << (double) timedelta.count() / reps;
             std::cout << std::endl;
         }
+
+        if (verbose)
+            real_bench->print_result();
     }
 
     // Free benches allocated in heap

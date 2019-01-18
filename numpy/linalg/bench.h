@@ -6,6 +6,9 @@
 
 #pragma once
 #include <algorithm>
+#include <iostream>
+#include <cstdio>
+#include <complex>
 
 using namespace std;
 
@@ -75,7 +78,62 @@ class Bench {
         return mat;
     }
 
+    void print_scalar(double x) {
+        printf("% .3f", x);
+    }
+
+    void print_scalar(complex<double> x) {
+        print_scalar(x.real());
+        printf(" + ");
+        print_scalar(x.imag());
+        printf("i");
+    }
+
+    template<typename T>
+    void print_mat(char mode, T *x, int m, int n) {
+        // If mode == 'r', treat it as row-major
+        // If mode == 'c', treat it as col-major
+        printf("[");
+        for (int i = 0; i < m; i++) {
+            if (i > 0)
+                printf(" ");
+            printf("[");
+            for (int j = 0; j < n; j++) {
+                T num;
+                if (mode == 'r')
+                    num = x[i*n+j];
+                else if (mode == 'c')
+                    num = x[j*m+i];
+                print_scalar(num);
+                if (j < n-1)
+                    printf(", ");
+            }
+            printf("]");
+            if (i < m-1)
+                printf(",\n");
+        }
+        printf("]\n");
+    }
+
+    template<typename T>
+    bool mat_equal(const T *a, const T *b, int n, double tol) {
+        for (int i = 0; i < n; i++)
+            if (abs(a[i] - b[i]) > tol)
+                return false;
+
+        return true;
+    }
+
+    template<typename T>
+    bool mat_equal(const T *a, const T *b, int n) {
+        return mat_equal(a, b, n, 0.00000000000001);
+    }
+
     virtual void make_args(int size) = 0;
     virtual void copy_args() = 0;
+    virtual void clean_args() = 0;
+    virtual void print_args() = 0;
+    virtual void print_result() = 0;
     virtual void compute() = 0;
+    virtual bool test() {return false;};
 };
