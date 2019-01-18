@@ -73,8 +73,8 @@ void Eig::compute() {
             if (wi_vec[i] != 0.0) {
                 // Copy real and imaginary parts
                 for (int j = 0; j < n; j++) {
-                    cvec[j] = CMPLX(rvec[j], rvec[n+j]);
-                    cvec[n+j] = CMPLX(rvec[j], -rvec[n+j]);
+                    cvec[j] = CMPLX(rvec[j], rvec[n + j]);
+                    cvec[n + j] = CMPLX(rvec[j], -rvec[n + j]);
                 }
                 i++;
             } else {
