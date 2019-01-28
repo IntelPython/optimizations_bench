@@ -12,7 +12,11 @@ class Cholesky : public Bench {
     ~Cholesky();
     void make_args(int size);
     void copy_args();
+    void clean_args();
+    void print_args();
+    void print_result();
     void compute();
+    bool test();
 
   private:
     double *x_mat, *r_mat;

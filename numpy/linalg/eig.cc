@@ -8,6 +8,41 @@
 #include <cstring>
 #include <iostream>
 
+static const double a_mat_test[] = {
+     0.470442000675409, -0.291482508170914, -0.44183986349643 ,
+    -0.176333746005435,  0.007410393215614, -0.739195206041762,
+     0.481736547564898,  0.805743972141035, -0.468344563609981
+};
+
+static const std::complex<double> w_vec_complex_test[] = {
+    { 0.558344640162537,  0.               },
+    {-0.274418404940748,  0.876285061400947},
+    {-0.274418404940748, -0.876285061400947}
+};
+
+static const std::complex<double> vr_mat_complex_test[] = {
+    {-0.870718618937641,  0.               },
+    { 0.491334396303628,  0.               },
+    { 0.020966583991578,  0.               },
+    { 0.12292498568887 ,  0.296216896839797},
+    { 0.107429842088307,  0.640393071981176},
+    {-0.689565472096294,  0.               },
+    { 0.12292498568887 , -0.296216896839797},
+    { 0.107429842088307, -0.640393071981176},
+    {-0.689565472096294, -0.               }
+};
+
+static const int test_size = 3;
+
+// We set these to zero, because the expectation is complex
+// eigenvalues and eigenvectors for this test input
+static const double wr_vec_test[] = {0., 0., 0.};
+static const double vr_mat_test[] = {
+    0., 0., 0.,
+    0., 0., 0.,
+    0., 0., 0.
+};
+
 Eig::Eig() {
     a_mat = r_mat = vl_mat = vr_mat = wr_vec = wi_vec = 0;
     vr_mat_complex = 0;
@@ -32,9 +67,9 @@ void Eig::make_args(int size) {
 
     // complex eigenvalues and eigenvectors
     w_vec_complex =
-        (double _Complex *) mkl_malloc(n * sizeof(*w_vec_complex), 64);
+        (std::complex<double> *) mkl_malloc(n * sizeof(*w_vec_complex), 64);
     vr_mat_complex =
-        (double _Complex *) mkl_malloc(mat_size * sizeof(*vr_mat_complex), 64);
+        (std::complex<double> *) mkl_malloc(mat_size * sizeof(*vr_mat_complex), 64);
 }
 
 void Eig::copy_args() {
@@ -55,11 +90,9 @@ void Eig::compute() {
     // Are all eigenvalues purely real? If so, we need not do anything.
     only_real = true;
     for (int i = 0; i < n; i++) {
-        if (wi_vec[i] != 0.0) {
+        w_vec_complex[i] = std::complex<double>(wr_vec[i], wi_vec[i]);
+        if (wi_vec[i] != 0.0)
             only_real = false;
-            break;
-        }
-        w_vec_complex[i] = CMPLX(wr_vec[i], wi_vec[i]);
     }
 
     if (!only_real) {
@@ -73,20 +106,58 @@ void Eig::compute() {
             if (wi_vec[i] != 0.0) {
                 // Copy real and imaginary parts
                 for (int j = 0; j < n; j++) {
-                    cvec[j] = CMPLX(rvec[j], rvec[n + j]);
-                    cvec[n + j] = CMPLX(rvec[j], -rvec[n + j]);
+                    cvec[j] = std::complex<double>(rvec[j], rvec[n + j]);
+                    cvec[n + j] = std::complex<double>(rvec[j], -rvec[n + j]);
                 }
                 i++;
+                cvec += n;
+                rvec += n;
             } else {
                 for (int j = 0; j < n; j++) {
-                    cvec[j] = CMPLX(rvec[j], 0);
+                    cvec[j] = std::complex<double>(rvec[j], 0);
                 }
             }
         }
     }
 }
 
-Eig::~Eig() {
+bool Eig::test() {
+    clean_args();
+    make_args(test_size);
+    memcpy(a_mat, a_mat_test, mat_size * sizeof(*a_mat));
+    copy_args();
+    compute();
+
+    if (only_real)
+        return mat_equal(wr_vec, wr_vec_test, n)
+            && mat_equal(vr_mat, vr_mat_test, mat_size);
+    else
+        return mat_equal(w_vec_complex, w_vec_complex_test, n)
+            && mat_equal(vr_mat_complex, vr_mat_complex_test, mat_size);
+}
+
+
+void Eig::print_args() {
+    std::cout << "Eigenvalues and eigenvectors of " <<
+        n << "*" << n << " matrix A." << std::endl;
+    std::cout << "A =" << std::endl;
+    print_mat('c', a_mat, n, n);
+}
+
+void Eig::print_result() {
+    std::cout << "Eigenvalues =" << std::endl;
+    if (only_real)
+        print_mat('c', wr_vec, 1, n);
+    else
+        print_mat('c', w_vec_complex, 1, n);
+    std::cout << "Eigenvectors =" << std::endl;
+    if (only_real)
+        print_mat('c', vr_mat, n, n);
+    else
+        print_mat('c', vr_mat_complex, n, n);
+}
+
+void Eig::clean_args() {
     if (a_mat)
         mkl_free(a_mat);
     if (vl_mat)
@@ -101,4 +172,8 @@ Eig::~Eig() {
         mkl_free(w_vec_complex);
     if (vr_mat_complex)
         mkl_free(vr_mat_complex);
+}
+
+Eig::~Eig() {
+    clean_args();
 }
