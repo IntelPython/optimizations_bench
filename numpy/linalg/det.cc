@@ -5,14 +5,13 @@
  */
 
 #include "det.h"
-#include <iostream>
 #include <cstring>
+#include <iostream>
 
 static const double x_mat_test[] = {
-     0.470442000675409, -0.291482508170914, -0.44183986349643 ,
-    -0.176333746005435,  0.007410393215614, -0.739195206041762,
-     0.481736547564898,  0.805743972141035, -0.468344563609981
-};
+    0.470442000675409,  -0.291482508170914, -0.44183986349643,
+    -0.176333746005435, 0.007410393215614,  -0.739195206041762,
+    0.481736547564898,  0.805743972141035,  -0.468344563609981};
 
 static const double result_test = 0.4707855751774963;
 static const int test_size = 3;
@@ -49,13 +48,14 @@ void Det::copy_args() {
 
 void Det::compute() {
     // compute pivoted lu decomposition
-    int info = LAPACKE_dgetrf(LAPACK_COL_MAJOR, m, n, r_mat, lda, ipiv);
+    int info;
+    dgetrf(&n, &n, r_mat, &lda, ipiv, &info);
     assert(info == 0);
 
     double t = 1.0;
     int i, j;
     for (i = 0, j = 0; i < mn_min; i++, j += lda + 1) {
-        t *= (ipiv[i] == i+1) ? r_mat[j] : -r_mat[j];
+        t *= (ipiv[i] == i + 1) ? r_mat[j] : -r_mat[j];
     }
     result = t;
 }
@@ -71,7 +71,8 @@ bool Det::test() {
 }
 
 void Det::print_args() {
-    std::cout << "Determinant of " << n << "x" << n << " matrix A." << std::endl;
+    std::cout << "Determinant of " << n << "x" << n << " matrix A."
+              << std::endl;
     std::cout << "A =" << std::endl;
     print_mat('c', x_mat, n, n);
 }

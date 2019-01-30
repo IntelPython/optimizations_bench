@@ -19,7 +19,7 @@ class Inv : public Bench {
     void compute();
 
   private:
-    double *x_mat, *r_mat;
+    double *x_mat, *r_mat, *x_mat_init, *identity;
     int *ipiv;
-    int m, n, lda, mat_size;
+    int n, lda, mat_size;
 };

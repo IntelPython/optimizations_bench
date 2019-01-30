@@ -5,31 +5,31 @@
  */
 
 #include "lu.h"
-#include <iostream>
 #include <cstring>
+#include <iostream>
 
 static const double x_mat_test[] = {
-     0.470442000675409, -0.291482508170914, -0.44183986349643 ,
-    -0.176333746005435,  0.007410393215614, -0.739195206041762,
-     0.481736547564898,  0.805743972141035, -0.468344563609981
-};
+    0.470442000675409,  -0.291482508170914, -0.44183986349643,
+    -0.176333746005435, 0.007410393215614,  -0.739195206041762,
+    0.481736547564898,  0.805743972141035,  -0.468344563609981};
 
 static const double p_mat_test[] = {1., 0., 0., 0., 0., 1., 0., 1., 0.};
 
 static const double l_mat_test[] = {
-     1.               , -0.9392015654684  , -0.619592867457488,
-     0.               ,  1.               ,  0.112559485278225,
-     0.               ,  0.               ,  1.
-};
+    1., -0.9392015654684, -0.619592867457488, 0., 1., 0.112559485278225, 0., 0.,
+    1.};
 
-static const double u_mat_test[] = {
-     0.470442000675409,  0.               ,  0.               ,
-    -0.176333746005435, -0.904808136334974,  0.               ,
-     0.481736547564898, -0.015896843993687,  1.106013841583318
-};
+static const double u_mat_test[] = {0.470442000675409,
+                                    0.,
+                                    0.,
+                                    -0.176333746005435,
+                                    -0.904808136334974,
+                                    0.,
+                                    0.481736547564898,
+                                    -0.015896843993687,
+                                    1.106013841583318};
 
 static const int test_size = 3;
-
 
 LU::LU() {
     x_mat = r_mat = l_mat = u_mat = p_mat = 0;
@@ -118,14 +118,14 @@ bool LU::test() {
     copy_args();
     compute();
 
-    return mat_equal(p_mat, p_mat_test, mat_size)
-        && mat_equal(l_mat, l_mat_test, mat_size)
-        && mat_equal(u_mat, u_mat_test, mat_size);
+    return mat_equal(p_mat, p_mat_test, mat_size) &&
+           mat_equal(l_mat, l_mat_test, mat_size) &&
+           mat_equal(u_mat, u_mat_test, mat_size);
 }
 
 void LU::print_args() {
-    std::cout << "LU decomposition P*L*U of " << m << "*" << n <<
-        " matrix A." << std::endl;
+    std::cout << "LU decomposition P*L*U of " << m << "*" << n << " matrix A."
+              << std::endl;
     std::cout << "A =" << std::endl;
     print_mat('c', x_mat, m, n);
 }
@@ -138,7 +138,6 @@ void LU::print_result() {
     std::cout << "U =" << std::endl;
     print_mat('c', u_mat, mn_min, n);
 }
-
 
 void LU::clean_args() {
     if (l_mat)
