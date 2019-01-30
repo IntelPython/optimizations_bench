@@ -116,6 +116,8 @@ int main(int argc, char *argv[]) {
     if (!test)
         std::cout << "Prefix,Function,Size,Time" << std::endl;
 
+    int return_value = 0;
+
     for (auto const &bench : benches) {
         if (all_benches.count(bench) == 0) {
             std::cerr << "# Ignoring invalid bench name: " << bench
@@ -128,6 +130,7 @@ int main(int argc, char *argv[]) {
         if (test) {
             if (!real_bench->test()) {
                 std::cout << "FAIL: " << bench << std::endl;
+                return_value = 1;
             } else {
                 std::cout << "pass: " << bench << std::endl;
             }
@@ -173,4 +176,6 @@ int main(int argc, char *argv[]) {
     for (auto const &bench : all_benches) {
         delete all_benches[bench.first];
     }
+
+    return return_value;
 }
