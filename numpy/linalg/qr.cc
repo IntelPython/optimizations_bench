@@ -5,30 +5,30 @@
  */
 
 #include "qr.h"
-#include <iostream>
 #include <cstring>
+#include <iostream>
 
 static const double x_mat_test[] = {
-     0.470442000675409, -0.291482508170914, -0.44183986349643 ,
-    -0.176333746005435,  0.007410393215614, -0.739195206041762,
-     0.481736547564898,  0.805743972141035, -0.468344563609981
-};
+    0.470442000675409,  -0.291482508170914, -0.44183986349643,
+    -0.176333746005435, 0.007410393215614,  -0.739195206041762,
+    0.481736547564898,  0.805743972141035,  -0.468344563609981};
 
 static const double q_mat_test[] = {
     -0.708166783705387, -0.247310653062924, -0.374882547416749,
     -0.341008805034221, -0.679169383462016, -0.931467229669989,
-    -0.280586627216089, -0.252573245441508,  0.97883501187842
-};
+    -0.280586627216089, -0.252573245441508, 0.97883501187842};
 
-static const double tau_vec_test[] = {
-    1.664309611097381, 1.070875234925678, 0.
-};
+static const double tau_vec_test[] = {1.664309611097381, 1.070875234925678, 0.};
 
-static const double r_mat_test[] = {
-    -0.708166783705387,  0.               ,  0.               ,
-    -0.341008805034221, -0.679169383462016,  0.               ,
-    -0.280586627216089, -0.252573245441508,  0.97883501187842
-};
+static const double r_mat_test[] = {-0.708166783705387,
+                                    0.,
+                                    0.,
+                                    -0.341008805034221,
+                                    -0.679169383462016,
+                                    0.,
+                                    -0.280586627216089,
+                                    -0.252573245441508,
+                                    0.97883501187842};
 
 static const int test_size = 3;
 
@@ -77,14 +77,14 @@ bool QR::test() {
     copy_args();
     compute();
 
-    return mat_equal(x_mat, q_mat_test, mat_size)
-        && mat_equal(tau_vec, tau_vec_test, n)
-        && mat_equal(r_mat, r_mat_test, mat_size);
+    return mat_equal(x_mat, q_mat_test, mat_size) &&
+           mat_equal(tau_vec, tau_vec_test, n) &&
+           mat_equal(r_mat, r_mat_test, mat_size);
 }
 
 void QR::print_args() {
-    std::cout << "QR decomposition of " << n << "*" << n <<
-        " matrix A." << std::endl;
+    std::cout << "QR decomposition of " << n << "*" << n << " matrix A."
+              << std::endl;
     std::cout << "A =" << std::endl;
     print_mat('c', x_mat_init, n, n);
 }
