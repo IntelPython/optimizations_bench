@@ -57,7 +57,9 @@ void Cholesky::copy_args() {
 
 void Cholesky::compute() {
     // compute cholesky decomposition
-    int info = LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', n, r_mat, lda);
+    int info;
+    const char uplo = 'U';
+    dpotrf(&uplo, &n, r_mat, &lda, &info);
     assert(info == 0);
 
     // we only want an upper triangular matrix

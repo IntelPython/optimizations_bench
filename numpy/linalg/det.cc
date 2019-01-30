@@ -49,7 +49,8 @@ void Det::copy_args() {
 
 void Det::compute() {
     // compute pivoted lu decomposition
-    int info = LAPACKE_dgetrf(LAPACK_COL_MAJOR, m, n, r_mat, lda, ipiv);
+    int info;
+    dgetrf(&n, &n, r_mat, &lda, ipiv, &info);
     assert(info == 0);
 
     double t = 1.0;
