@@ -36,6 +36,11 @@
 #define PRINT_LINE(impl, func, prefix, n, cpe) \
     printf("%s, " impl ", " func ", %ld, %.4g\n", prefix, n, cpe);
 
+#define DEFAULT_INNER_LOOPS 5000
+#define DEFAULT_OUTER_LOOPS 3
+#define DEFAULT_SIZE 2500000
+#define DEFAULT_PREFIX "Native-C"
+
 static void _print_mkl_version() {
     int len = 198;
     char buf[198];
@@ -67,6 +72,11 @@ static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
     return;
 }
 
+void print_usage(const char *exe) {
+    printf("usage: %s [-h] [-v] [--header] [-n SIZE] [-r INNER_LOOPS] "
+           "[-s OUTER_LOOPS]\n", exe);
+}
+
 int main(int argc, char *argv[]) {
     VSLStreamStatePtr stream;
     double *x1, *x2, *y, CPE, CPE_min;
@@ -77,11 +87,12 @@ int main(int argc, char *argv[]) {
     rdtsc_type t0, t1;
 
     /* Default options */
-    long int n = 2500000;
-    int outer_loops = 3;
-    int inner_loops = 5000;
+    long int n = DEFAULT_SIZE;
+    int outer_loops = DEFAULT_OUTER_LOOPS;
+    int inner_loops = DEFAULT_INNER_LOOPS;
     int verbose = 0;
-    char *prefix = "Native-C";
+    int header = 0;
+    char *prefix = DEFAULT_PREFIX;
 
     /* Command line option parsing */
     static const struct option longopts[] = {
@@ -90,6 +101,7 @@ int main(int argc, char *argv[]) {
         {"outer-loops", required_argument, NULL, 's'},
         {"prefix", required_argument, NULL, 'p'},
         {"verbose", no_argument, NULL, 'v'},
+        {"header", no_argument, NULL, 'w'},
         {"help", no_argument, NULL, 'h'},
         {0, 0, 0, 0}};
 
@@ -111,15 +123,36 @@ int main(int argc, char *argv[]) {
             prefix = optarg;
             break;
         case 'h':
-            printf("usage: %s [-h] [-v] [-n SIZE] [-r INNER_LOOPS] "
-                   "[-s OUTER_LOOPS]\n", argv[0]);
+            print_usage(argv[0]);
+            printf("\nBenchmarks for VML/SVML arithmetic and transcendentals\n"
+                   "\noptional arguments:\n"
+                   "  -h, --help\t\tshow this help message and exit\n"
+                   "  -v, --verbose\t\tprint extra messages\n"
+                   "  --header\t\tprint CSV header\n"
+                   "  -n SIZE, --size SIZE\tproblem size "
+                   "(default %d)\n"
+                   "  -s OUTER_LOOPS, --outer-loops OUTER_LOOPS\n"
+                   "\t\t\tnumber of outer iterations to run, no aggregation "
+                   "(default %d)\n"
+                   "  -r INNER_LOOPS, --inner-loops INNER_LOOPS\n"
+                   "\t\t\tnumber of inner iterations to run, taking the min "
+                   "(default %d)\n"
+                   "  -p PREFIX, --prefix PREFIX\n"
+                   "\t\t\tbookkeeping string "
+                   "to report with data (default '%s')"
+                   "\n",
+                   DEFAULT_SIZE, DEFAULT_OUTER_LOOPS, DEFAULT_INNER_LOOPS,
+                   DEFAULT_PREFIX);
             return EXIT_SUCCESS;
         case 'v':
             verbose = 1;
             break;
-        case '?':
+        case 'w':
+            header = 1;
             break;
+        case '?':
         default:
+            print_usage(argv[0]);
             return EXIT_FAILURE;
         }
     }
@@ -127,8 +160,12 @@ int main(int argc, char *argv[]) {
     if (verbose) {
         printf("@ MKL: ");
         _print_mkl_version();
-        printf("@ n = %d; outer_loops = %d; inner_loops = %d\n",
+        printf("@ n = %ld; outer_loops = %d; inner_loops = %d\n",
                n, outer_loops, inner_loops);
+    }
+
+    if (header) {
+        puts("Prefix, Implementation, Function, Size, CPE");
     }
 
     experiment_t *experims = (experiment_t *)

@@ -4,7 +4,7 @@
 
 CC = icc
 CFLAGS = -qopenmp -xCORE-AVX2 -axCOMMON-AVX512 -O3 \
-		 -g -lmkl_rt
+		 -g -lmkl_rt -Wall -pedantic
 
 ifneq ($(CONDA_PREFIX),)
 		CFLAGS += -I$(CONDA_PREFIX)/include
