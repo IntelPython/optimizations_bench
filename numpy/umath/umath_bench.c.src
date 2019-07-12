@@ -70,43 +70,43 @@ static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
 }
 
 int main(int argc, char **argv) {
-  VSLStreamStatePtr stream;
-  double *x1, *x2, *y, CPE, CPE_min;
-  double c = 4321.43;
-  int err = 0;
-  size_t j, i, k, l;
-  const double d_zero = 0.0, d_one = 1.0;
-  experiment_t experims[EXPERIMS_N];
-  rdtsc_type t0, t1;
-  long int arraySize = argc>1?atol(argv[1]):2500000;
+    VSLStreamStatePtr stream;
+    double *x1, *x2, *y, CPE, CPE_min;
+    double c = 4321.43;
+    int err = 0;
+    size_t j, i, k, l;
+    const double d_zero = 0.0, d_one = 1.0;
+    experiment_t experims[EXPERIMS_N];
+    rdtsc_type t0, t1;
+    long int arraySize = argc>1?atol(argv[1]):2500000;
     long int n = arraySize;
-  char *prefix = argc>2?argv[2]:"@";
+    char *prefix = argc>2?argv[2]:"@";
 
-  populate_experiment_sizes(experims, 2, EXPERIMS_N);
+    populate_experiment_sizes(experims, 2, EXPERIMS_N);
 
-  err = vslNewStream(&stream, VSL_BRNG_SFMT19937, SEED);
-  assert(err == VSL_STATUS_OK);
-
-  {
-    long int n = arraySize;
-
-    x1 = (double *) mkl_malloc( n*sizeof(double), 64);
-    x2 = (double *) mkl_malloc( n*sizeof(double), 64);
-    y  = (double *) mkl_malloc( n*sizeof(double), 64);
-
-    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream,
-                           n, x1, d_zero, d_one);
+    err = vslNewStream(&stream, VSL_BRNG_SFMT19937, SEED);
     assert(err == VSL_STATUS_OK);
-    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream,
-                           n, x2, d_zero, d_one);
-    assert(err == VSL_STATUS_OK);
-  }
+
+    {
+        long int n = arraySize;
+
+        x1 = (double *) mkl_malloc( n*sizeof(double), 64);
+        x2 = (double *) mkl_malloc( n*sizeof(double), 64);
+        y  = (double *) mkl_malloc( n*sizeof(double), 64);
+
+        err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE,
+                               stream, n, x1, d_zero, d_one);
+        assert(err == VSL_STATUS_OK);
+        err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE,
+                               stream, n, x2, d_zero, d_one);
+        assert(err == VSL_STATUS_OK);
+    }
 
 #define TIME_CPE_HERE TIME_CPE(REPS_N, n, j, t0, t1, CPE, CPE_min)
 #define PRINT_LINE_HERE(impl, func) PRINT_LINE(impl, func, prefix, n, CPE_min)
 
     int experiments;
-    for(experiments = 0; experiments<EXPERIMS_N; experiments++) {
+    for (experiments = 0; experiments < EXPERIMS_N; experiments++) {
 
 /**begin repeat
  *  #func = +, -, *, /#
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
                 y[l] = x1[l] / c;
             }
         }
-        printf("%s, SVML, array/scalar, %ld, %.4g\n", prefix, n, CPE_min);
+        PRINT_LINE_HERE("SVML", "array/scalar");
 
 /**begin repeat
  *  #func = log10, exp, erf#
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
         TIME_CPE_HERE {
             vd@vml@(n, x1, y);
         }
-        printf("%s, VML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
+        PRINT_LINE_HERE("VML", "@func@");
 
         TIME_CPE_HERE {
 #pragma omp parallel for
@@ -180,14 +180,14 @@ int main(int argc, char **argv) {
                 y[l] = @func@(x1[l]);
             }
         }
-        printf("%s, SVML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
+        PRINT_LINE_HERE("SVML", "@func@");
 
 /**end repeat**/
 
         TIME_CPE_HERE {
             vdInvSqrt(n, x1, y);
         }
-        printf("%s, VML, invsqrt, %ld, %.4g\n", prefix, n, CPE_min);
+        PRINT_LINE_HERE("VML", "invsqrt");
 
         TIME_CPE_HERE {
 #pragma omp parallel for
@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
                 y[l] = 1 / sqrt(x1[l]);
             }
         }
-        printf("%s, SVML, invsqrt, %ld, %.4g\n", prefix, n, CPE_min);
+        PRINT_LINE_HERE("SVML", "invsqrt");
     }
 
     if (x1)
