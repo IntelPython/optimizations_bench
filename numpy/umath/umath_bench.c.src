@@ -4,14 +4,15 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 #include "mkl.h"
-#include <assert.h>
 #include "rdtsc.h"
+#include <assert.h>
 #include <complex.h>
+#include <getopt.h>
+#include <math.h>
 #include <mathimf.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define SEED 77777
 
@@ -40,11 +41,8 @@ static void _print_mkl_version() {
     char buf[198];
 
     mkl_get_version_string(buf, len);
-    printf("\nMKL Version: %s\n", buf);
+    puts(buf);
 }
-
-#define EXPERIMS_N 3
-#define REPS_N 100
 
 typedef struct experiment_t {
     long array_size;
@@ -69,27 +67,79 @@ static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
     return;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
     VSLStreamStatePtr stream;
     double *x1, *x2, *y, CPE, CPE_min;
     double c = 4321.43;
     int err = 0;
     size_t j, i, k, l;
     const double d_zero = 0.0, d_one = 1.0;
-    experiment_t experims[EXPERIMS_N];
     rdtsc_type t0, t1;
-    long int arraySize = argc > 1 ? atol(argv[1]) : 2500000;
-    long int n = arraySize;
-    char *prefix = argc > 2 ? argv[2] : "@";
 
-    populate_experiment_sizes(experims, 2, EXPERIMS_N);
+    /* Default options */
+    long int n = 2500000;
+    int outer_loops = 3;
+    int inner_loops = 5000;
+    int verbose = 0;
+    char *prefix = "Native-C";
+
+    /* Command line option parsing */
+    static const struct option longopts[] = {
+        {"size", required_argument, NULL, 'n'},
+        {"inner-loops", required_argument, NULL, 'r'},
+        {"outer-loops", required_argument, NULL, 's'},
+        {"prefix", required_argument, NULL, 'p'},
+        {"verbose", no_argument, NULL, 'v'},
+        {"help", no_argument, NULL, 'h'},
+        {0, 0, 0, 0}};
+
+    int opt;
+    int optind = 0;
+    while ((opt = getopt_long(argc, argv, "vhn:r:s:p:", longopts,
+                              &optind)) != -1) {
+        switch (opt) {
+        case 'n':
+            n = atol(optarg);
+            break;
+        case 'r':
+            inner_loops = atol(optarg);
+            break;
+        case 's':
+            outer_loops = atol(optarg);
+            break;
+        case 'p':
+            prefix = optarg;
+            break;
+        case 'h':
+            printf("usage: %s [-h] [-v] [-n SIZE] [-r INNER_LOOPS] "
+                   "[-s OUTER_LOOPS]\n", argv[0]);
+            return EXIT_SUCCESS;
+        case 'v':
+            verbose = 1;
+            break;
+        case '?':
+            break;
+        default:
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (verbose) {
+        printf("@ MKL: ");
+        _print_mkl_version();
+        printf("@ n = %d; outer_loops = %d; inner_loops = %d\n",
+               n, outer_loops, inner_loops);
+    }
+
+    experiment_t *experims = (experiment_t *)
+            malloc(outer_loops * sizeof(*experims));
+
+    populate_experiment_sizes(experims, 2, outer_loops);
 
     err = vslNewStream(&stream, VSL_BRNG_SFMT19937, SEED);
     assert(err == VSL_STATUS_OK);
 
     {
-        long int n = arraySize;
-
         x1 = (double *) mkl_malloc(n * sizeof(double), 64);
         x2 = (double *) mkl_malloc(n * sizeof(double), 64);
         y = (double *) mkl_malloc(n * sizeof(double), 64);
@@ -102,11 +152,11 @@ int main(int argc, char **argv) {
         assert(err == VSL_STATUS_OK);
     }
 
-#define TIME_CPE_HERE TIME_CPE(REPS_N, n, j, t0, t1, CPE, CPE_min)
+#define TIME_CPE_HERE TIME_CPE(inner_loops, n, j, t0, t1, CPE, CPE_min)
 #define PRINT_LINE_HERE(impl, func) PRINT_LINE(impl, func, prefix, n, CPE_min)
 
     int experiments;
-    for (experiments = 0; experiments < EXPERIMS_N; experiments++) {
+    for (experiments = 0; experiments < outer_loops; experiments++) {
 
 /**begin repeat
  *  #func = +, -, *, /#
@@ -198,6 +248,8 @@ int main(int argc, char **argv) {
         mkl_free(x2);
     if (y)
         mkl_free(y);
+    if (experims)
+        free(experims);
 
     err = vslDeleteStream(&stream);
     assert(err == VSL_STATUS_OK);
