@@ -15,20 +15,40 @@
 
 #define SEED 77777
 
-static void _print_mkl_version() {
-  int len = 198;
-  char buf[198];
+/*
+ * Inner timing loop, emitting CPE. Note that this is just a glorified
+ * for-loop!
+ *
+ * reps - number of repetitions
+ * n - problem size
+ * j - temporary iteration variable
+ * t0, t1 - temporary timing variables (rdtsc_type)
+ * cpe - cpe variable to set
+ * cpe_min - cpe_min variable to set
+ */
+#define TIME_CPE(reps, n, j, t0, t1, cpe, cpe_min) \
+    cpe_min = 100000000.0; \
+    for (j = 0; t0 = timer_rdtsc(), j < reps; t1 = timer_rdtsc(), \
+         cpe = ((double) (t1 - t0) / n), \
+         cpe_min = cpe < cpe_min ? cpe : cpe_min, j++)
 
-  mkl_get_version_string(buf, len);
-  printf("\nMKL Version: %s\n", buf);
+#define PRINT_LINE(impl, func, prefix, n, cpe) \
+    printf("%s, " impl ", " func ", %ld, %.4g\n", prefix, n, cpe);
+
+static void _print_mkl_version() {
+    int len = 198;
+    char buf[198];
+
+    mkl_get_version_string(buf, len);
+    printf("\nMKL Version: %s\n", buf);
 }
 
 #define EXPERIMS_N 3
-#define REPS_N 5000
+#define REPS_N 100
 
 typedef struct experiment_t {
-  long array_size;
-  long repetitions;
+    long array_size;
+    long repetitions;
 } experiment_t;
 
 static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
@@ -59,6 +79,7 @@ int main(int argc, char **argv) {
   experiment_t experims[EXPERIMS_N];
   rdtsc_type t0, t1;
   long int arraySize = argc>1?atol(argv[1]):2500000;
+    long int n = arraySize;
   char *prefix = argc>2?argv[2]:"@";
 
   populate_experiment_sizes(experims, 2, EXPERIMS_N);
@@ -73,53 +94,41 @@ int main(int argc, char **argv) {
     x2 = (double *) mkl_malloc( n*sizeof(double), 64);
     y  = (double *) mkl_malloc( n*sizeof(double), 64);
 
-    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream, n, x1, d_zero, d_one);
+    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream,
+                           n, x1, d_zero, d_one);
     assert(err == VSL_STATUS_OK);
-    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream, n, x2, d_zero, d_one);
+    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream,
+                           n, x2, d_zero, d_one);
     assert(err == VSL_STATUS_OK);
   }
 
-  for(int experiments = 0; experiments<EXPERIMS_N; experiments++) {
+#define TIME_CPE_HERE TIME_CPE(REPS_N, n, j, t0, t1, CPE, CPE_min)
+#define PRINT_LINE_HERE(impl, func) PRINT_LINE(impl, func, prefix, n, CPE_min)
+
+    int experiments;
+    for(experiments = 0; experiments<EXPERIMS_N; experiments++) {
 
 /**begin repeat
- *  #BEGIN =
-    size_t reps = REPS_N;
-    long int n = arraySize;
-    CPE_min = 100000000.0;
-    for (j=0; j < reps; j++) {
-      t0 = timer_rdtsc();
-    #
- *  #END = 
-      t1 = timer_rdtsc();
-      CPE = ((double)(t1 - t0)/n);
-      CPE_min = CPE < CPE_min ? CPE : CPE_min;
-    }
- #
- */
-
-/**begin repeat1
  *  #func = +, -, *, /#
  *  #vml = Add, Sub, Mul, Div#
  */
-  { @BEGIN@
-      vd@vml@(n, x1, x2, y);
-    @END@
-    printf("%s, VML, array@func@array, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+            vd@vml@(n, x1, x2, y);
+        }
+        PRINT_LINE_HERE("VML", "array@func@array");
 
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = x1[l] @func@ x2[l];
-      }
-    @END@
-    printf("%s, SVML, array@func@array, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for (l = 0; l < n; l++) {
+                y[l] = x1[l] @func@ x2[l];
+            }
+        }
+        PRINT_LINE_HERE("SVML", "array@func@array");
 
 
-/**end repeat1**/
+/**end repeat**/
 
-/**begin repeat1
+/**begin repeat
  *  #func=   +,   -,   *#
  *  #in1 =   n,   n,   n#
  *  #in2 =  x1,  x1,  x1#
@@ -131,63 +140,71 @@ int main(int argc, char **argv) {
  *  #in8 =   y,   y,   y#
  */
 
-  { @BEGIN@
-      vdLinearFrac(@in1@, @in2@, @in3@, @in4@, @in5@, @in6@, @in7@, @in8@);
-    @END@
-    printf("%s, VML, array@func@scalar, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+            vdLinearFrac(@in1@, @in2@, @in3@, @in4@, @in5@, @in6@, @in7@,
+                         @in8@);
+        }
+        PRINT_LINE_HERE("VML", "array@func@scalar");
 
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = x1[l] @func@ c;
-      }
-    @END@
-    printf("%s, SVML, array@func@scalar, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for(l=0; l < n; l++) {
+                y[l] = x1[l] @func@ c;
+            }
+        }
+        PRINT_LINE_HERE("SVML", "array@func@scalar");
 
-/**end repeat1**/
+/**end repeat**/
 
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = x1[l] / c;
-      }
-    @END@
-    printf("%s, SVML, array/scalar, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for(l=0; l < n; l++) {
+                y[l] = x1[l] / c;
+            }
+        }
+        printf("%s, SVML, array/scalar, %ld, %.4g\n", prefix, n, CPE_min);
 
-/**begin repeat1
- *  #func = log10, exp, erf, invsqrt#
- *  #vml =  Log10, Exp, Erf, InvSqrt#
+/**begin repeat
+ *  #func = log10, exp, erf#
+ *  #vml =  Log10, Exp, Erf#
  */
 
-  { @BEGIN@
-      vd@vml@(n, x1, y);
-    @END@
-    printf("%s, VML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+            vd@vml@(n, x1, y);
+        }
+        printf("%s, VML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
 
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = @func@(x1[l]);
-      }
-    @END@
-    printf("%s, SVML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for(l=0; l < n; l++) {
+                y[l] = @func@(x1[l]);
+            }
+        }
+        printf("%s, SVML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
 
-/**end repeat1**/
 /**end repeat**/
- }
 
-  if (x1)
-    mkl_free(x1);
-  if (x2)
-    mkl_free(x2);
-  if (y)
-    mkl_free(y);
+        TIME_CPE_HERE {
+            vdInvSqrt(n, x1, y);
+        }
+        printf("%s, VML, invsqrt, %ld, %.4g\n", prefix, n, CPE_min);
 
-  err = vslDeleteStream(&stream);
-  assert(err == VSL_STATUS_OK);
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for(l=0; l < n; l++) {
+                y[l] = 1 / sqrt(x1[l]);
+            }
+        }
+        printf("%s, SVML, invsqrt, %ld, %.4g\n", prefix, n, CPE_min);
+    }
+
+    if (x1)
+        mkl_free(x1);
+    if (x2)
+        mkl_free(x2);
+    if (y)
+        mkl_free(y);
+
+    err = vslDeleteStream(&stream);
+    assert(err == VSL_STATUS_OK);
 }

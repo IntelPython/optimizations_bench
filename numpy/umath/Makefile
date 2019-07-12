@@ -6,12 +6,15 @@ CC = icc
 CFLAGS = -qopenmp -xCORE-AVX2 -axCOMMON-AVX512 -O3 \
 		 -g -lmkl_rt
 
+ifneq ($(CONDA_PREFIX),)
+		CFLAGS += -I$(CONDA_PREFIX)/include
+endif
+
 PYTHON ?= python
 
-ACC ?= la
+ACC ?= ha
 ifeq ($(ACC), ha)
 	CFLAGS += -fimf-precision=high -D_VML_ACCURACY_HA_
-	CFLAGS += -fp-model precise
 endif
 ifeq ($(ACC), la)
 	CFLAGS += -fimf-precision=medium -D_VML_ACCURACY_LA_

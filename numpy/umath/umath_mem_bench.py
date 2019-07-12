@@ -9,8 +9,8 @@ import warnings
 import itertools
 import time
 import gc
-import numpy.core.umath as ncu
 import numpy as np
+import numpy.core.umath
 import argparse
 
 try:
@@ -101,7 +101,10 @@ def getUnaryFuncImpl(func, impl):
             return numbaKernel("x", "math.%s(x[i])"%func, "(f8[::1],f8[::1])")
     elif impl == 'numpy':
         try:
-            return getattr(np.core.umath, func, getattr(np, func))
+            ufunc = getattr(np.core.umath, func, None)
+            if not ufunc:
+                ufunc = getattr(np, func)
+            return ufunc
         except:
             if func == "erf":
                 from scipy.special import erf
