@@ -52,21 +52,21 @@ typedef struct experiment_t {
 } experiment_t;
 
 static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
-  int i;
-  long s, r;
-  long r_max = (1 << 16);
+    int i;
+    long s, r;
+    long r_max = (1 << 16);
 
-  s = (1 << s0);
-  r = (2 << n);
+    s = (1 << s0);
+    r = (2 << n);
 
-  for(i=0; i < n; i++) {
-    list[i].array_size = s;
-    list[i].repetitions = (r > r_max) ? r_max : r;
-    s <<= 1;
-    r >>= 1;
-  }
+    for (i = 0; i < n; i++) {
+        list[i].array_size = s;
+        list[i].repetitions = (r > r_max) ? r_max : r;
+        s <<= 1;
+        r >>= 1;
+    }
 
-  return;
+    return;
 }
 
 int main(int argc, char **argv) {
@@ -78,9 +78,9 @@ int main(int argc, char **argv) {
     const double d_zero = 0.0, d_one = 1.0;
     experiment_t experims[EXPERIMS_N];
     rdtsc_type t0, t1;
-    long int arraySize = argc>1?atol(argv[1]):2500000;
+    long int arraySize = argc > 1 ? atol(argv[1]) : 2500000;
     long int n = arraySize;
-    char *prefix = argc>2?argv[2]:"@";
+    char *prefix = argc > 2 ? argv[2] : "@";
 
     populate_experiment_sizes(experims, 2, EXPERIMS_N);
 
@@ -90,9 +90,9 @@ int main(int argc, char **argv) {
     {
         long int n = arraySize;
 
-        x1 = (double *) mkl_malloc( n*sizeof(double), 64);
-        x2 = (double *) mkl_malloc( n*sizeof(double), 64);
-        y  = (double *) mkl_malloc( n*sizeof(double), 64);
+        x1 = (double *) mkl_malloc(n * sizeof(double), 64);
+        x2 = (double *) mkl_malloc(n * sizeof(double), 64);
+        y = (double *) mkl_malloc(n * sizeof(double), 64);
 
         err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE,
                                stream, n, x1, d_zero, d_one);
@@ -124,8 +124,6 @@ int main(int argc, char **argv) {
             }
         }
         PRINT_LINE_HERE("SVML", "array@func@array");
-
-
 /**end repeat**/
 
 /**begin repeat
@@ -139,7 +137,6 @@ int main(int argc, char **argv) {
  *  #in7 = 1.0, 1.0, 1.0#
  *  #in8 =   y,   y,   y#
  */
-
         TIME_CPE_HERE {
             vdLinearFrac(@in1@, @in2@, @in3@, @in4@, @in5@, @in6@, @in7@,
                          @in8@);
@@ -148,17 +145,16 @@ int main(int argc, char **argv) {
 
         TIME_CPE_HERE {
 #pragma omp parallel for
-            for(l=0; l < n; l++) {
+            for (l = 0; l < n; l++) {
                 y[l] = x1[l] @func@ c;
             }
         }
         PRINT_LINE_HERE("SVML", "array@func@scalar");
-
 /**end repeat**/
 
         TIME_CPE_HERE {
 #pragma omp parallel for
-            for(l=0; l < n; l++) {
+            for (l = 0; l < n; l++) {
                 y[l] = x1[l] / c;
             }
         }
@@ -168,7 +164,6 @@ int main(int argc, char **argv) {
  *  #func = log10, exp, erf#
  *  #vml =  Log10, Exp, Erf#
  */
-
         TIME_CPE_HERE {
             vd@vml@(n, x1, y);
         }
@@ -176,12 +171,11 @@ int main(int argc, char **argv) {
 
         TIME_CPE_HERE {
 #pragma omp parallel for
-            for(l=0; l < n; l++) {
+            for (l = 0; l < n; l++) {
                 y[l] = @func@(x1[l]);
             }
         }
         PRINT_LINE_HERE("SVML", "@func@");
-
 /**end repeat**/
 
         TIME_CPE_HERE {
@@ -191,7 +185,7 @@ int main(int argc, char **argv) {
 
         TIME_CPE_HERE {
 #pragma omp parallel for
-            for(l=0; l < n; l++) {
+            for (l = 0; l < n; l++) {
                 y[l] = 1 / sqrt(x1[l]);
             }
         }
