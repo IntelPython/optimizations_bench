@@ -50,10 +50,15 @@ void SVD::make_args(int size) {
 }
 
 void SVD::copy_args() {
-    memcpy(r_mat, a_mat, mat_size * sizeof(*r_mat));
+    // nothing, see compute()
 }
 
 void SVD::compute() {
+
+    // copy_args here because we are considering this an "out of place"
+    // operation, i.e. overwrite_a=False in scipy call
+    memcpy(r_mat, a_mat, mat_size * sizeof(*r_mat));
+
     // compute svd decomposition
     int info = LAPACKE_dgesdd(LAPACK_COL_MAJOR, 'A', n, n, r_mat, lda, s_vec,
                               u_mat, lda, vt_mat, lda);
