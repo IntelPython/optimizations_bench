@@ -4,7 +4,7 @@
 
 CXX = icc
 CXXFLAGS = -O3 -g -xCORE-AVX2 -axCOMMON-AVX512 -qopenmp \
-		   -qopt-report=5 -qopt-report-phase=openmp,par,vec
+	   -qopt-report=5 -qopt-report-phase=openmp,par,vec
 LDFLAGS = -lmkl_rt -qopenmp
 
 TARGET = linalg

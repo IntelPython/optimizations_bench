@@ -4,122 +4,216 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 #include "mkl.h"
-#include <assert.h>
 #include "rdtsc.h"
+#include <assert.h>
 #include <complex.h>
+#include <getopt.h>
+#include <math.h>
 #include <mathimf.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define SEED 77777
 
-static void _print_mkl_version() {
-  int len = 198;
-  char buf[198];
+/*
+ * Inner timing loop, emitting CPE. Note that this is just a glorified
+ * for-loop!
+ *
+ * reps - number of repetitions
+ * n - problem size
+ * j - temporary iteration variable
+ * t0, t1 - temporary timing variables (rdtsc_type)
+ * cpe - cpe variable to set
+ * cpe_min - cpe_min variable to set
+ */
+#define TIME_CPE(reps, n, j, t0, t1, cpe, cpe_min) \
+    cpe_min = 100000000.0; \
+    for (j = 0; t0 = timer_rdtsc(), j < reps; t1 = timer_rdtsc(), \
+         cpe = ((double) (t1 - t0) / n), \
+         cpe_min = cpe < cpe_min ? cpe : cpe_min, j++)
 
-  mkl_get_version_string(buf, len);
-  printf("\nMKL Version: %s\n", buf);
+#define PRINT_LINE(impl, func, prefix, n, cpe) \
+    printf("%s, " impl ", " func ", %ld, %.4g\n", prefix, n, cpe);
+
+#define DEFAULT_INNER_LOOPS 5000
+#define DEFAULT_OUTER_LOOPS 3
+#define DEFAULT_SIZE 2500000
+#define DEFAULT_PREFIX "Native-C"
+
+static void _print_mkl_version() {
+    int len = 198;
+    char buf[198];
+
+    mkl_get_version_string(buf, len);
+    puts(buf);
 }
 
-#define EXPERIMS_N 3
-#define REPS_N 5000
-
 typedef struct experiment_t {
-  long array_size;
-  long repetitions;
+    long array_size;
+    long repetitions;
 } experiment_t;
 
 static void populate_experiment_sizes(experiment_t *list, int s0, size_t n) {
-  int i;
-  long s, r;
-  long r_max = (1 << 16);
+    int i;
+    long s, r;
+    long r_max = (1 << 16);
 
-  s = (1 << s0);
-  r = (2 << n);
+    s = (1 << s0);
+    r = (2 << n);
 
-  for(i=0; i < n; i++) {
-    list[i].array_size = s;
-    list[i].repetitions = (r > r_max) ? r_max : r;
-    s <<= 1;
-    r >>= 1;
-  }
+    for (i = 0; i < n; i++) {
+        list[i].array_size = s;
+        list[i].repetitions = (r > r_max) ? r_max : r;
+        s <<= 1;
+        r >>= 1;
+    }
 
-  return;
+    return;
 }
 
-int main(int argc, char **argv) {
-  VSLStreamStatePtr stream;
-  double *x1, *x2, *y, CPE, CPE_min;
-  double c = 4321.43;
-  int err = 0;
-  size_t j, i, k, l;
-  const double d_zero = 0.0, d_one = 1.0;
-  experiment_t experims[EXPERIMS_N];
-  rdtsc_type t0, t1;
-  long int arraySize = argc>1?atol(argv[1]):2500000;
-  char *prefix = argc>2?argv[2]:"@";
+void print_usage(const char *exe) {
+    printf("usage: %s [-h] [-v] [--header] [-n SIZE] [-r INNER_LOOPS] "
+           "[-s OUTER_LOOPS]\n", exe);
+}
 
-  populate_experiment_sizes(experims, 2, EXPERIMS_N);
+int main(int argc, char *argv[]) {
+    VSLStreamStatePtr stream;
+    double *x1, *x2, *y, CPE, CPE_min;
+    double c = 4321.43;
+    int err = 0;
+    size_t j, i, k, l;
+    const double d_zero = 0.0, d_one = 1.0;
+    rdtsc_type t0, t1;
 
-  err = vslNewStream(&stream, VSL_BRNG_SFMT19937, SEED);
-  assert(err == VSL_STATUS_OK);
+    /* Default options */
+    long int n = DEFAULT_SIZE;
+    int outer_loops = DEFAULT_OUTER_LOOPS;
+    int inner_loops = DEFAULT_INNER_LOOPS;
+    int verbose = 0;
+    int header = 0;
+    char *prefix = DEFAULT_PREFIX;
 
-  {
-    long int n = arraySize;
+    /* Command line option parsing */
+    static const struct option longopts[] = {
+        {"size", required_argument, NULL, 'n'},
+        {"inner-loops", required_argument, NULL, 'r'},
+        {"outer-loops", required_argument, NULL, 's'},
+        {"prefix", required_argument, NULL, 'p'},
+        {"verbose", no_argument, NULL, 'v'},
+        {"header", no_argument, NULL, 'w'},
+        {"help", no_argument, NULL, 'h'},
+        {0, 0, 0, 0}};
 
-    x1 = (double *) mkl_malloc( n*sizeof(double), 64);
-    x2 = (double *) mkl_malloc( n*sizeof(double), 64);
-    y  = (double *) mkl_malloc( n*sizeof(double), 64);
+    int opt;
+    int optind = 0;
+    while ((opt = getopt_long(argc, argv, "vhn:r:s:p:", longopts,
+                              &optind)) != -1) {
+        switch (opt) {
+        case 'n':
+            n = atol(optarg);
+            break;
+        case 'r':
+            inner_loops = atol(optarg);
+            break;
+        case 's':
+            outer_loops = atol(optarg);
+            break;
+        case 'p':
+            prefix = optarg;
+            break;
+        case 'h':
+            print_usage(argv[0]);
+            printf("\nBenchmarks for VML/SVML arithmetic and transcendentals\n"
+                   "\noptional arguments:\n"
+                   "  -h, --help\t\tshow this help message and exit\n"
+                   "  -v, --verbose\t\tprint extra messages\n"
+                   "  --header\t\tprint CSV header\n"
+                   "  -n SIZE, --size SIZE\tproblem size "
+                   "(default %d)\n"
+                   "  -s OUTER_LOOPS, --outer-loops OUTER_LOOPS\n"
+                   "\t\t\tnumber of outer iterations to run, no aggregation "
+                   "(default %d)\n"
+                   "  -r INNER_LOOPS, --inner-loops INNER_LOOPS\n"
+                   "\t\t\tnumber of inner iterations to run, taking the min "
+                   "(default %d)\n"
+                   "  -p PREFIX, --prefix PREFIX\n"
+                   "\t\t\tbookkeeping string "
+                   "to report with data (default '%s')"
+                   "\n",
+                   DEFAULT_SIZE, DEFAULT_OUTER_LOOPS, DEFAULT_INNER_LOOPS,
+                   DEFAULT_PREFIX);
+            return EXIT_SUCCESS;
+        case 'v':
+            verbose = 1;
+            break;
+        case 'w':
+            header = 1;
+            break;
+        case '?':
+        default:
+            print_usage(argv[0]);
+            return EXIT_FAILURE;
+        }
+    }
 
-    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream, n, x1, d_zero, d_one);
+    if (verbose) {
+        printf("@ MKL: ");
+        _print_mkl_version();
+        printf("@ n = %ld; outer_loops = %d; inner_loops = %d\n",
+               n, outer_loops, inner_loops);
+    }
+
+    if (header) {
+        puts("Prefix, Implementation, Function, Size, CPE");
+    }
+
+    experiment_t *experims = (experiment_t *)
+            malloc(outer_loops * sizeof(*experims));
+
+    populate_experiment_sizes(experims, 2, outer_loops);
+
+    err = vslNewStream(&stream, VSL_BRNG_SFMT19937, SEED);
     assert(err == VSL_STATUS_OK);
-    err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE, stream, n, x2, d_zero, d_one);
-    assert(err == VSL_STATUS_OK);
-  }
 
-  for(int experiments = 0; experiments<EXPERIMS_N; experiments++) {
+    {
+        x1 = (double *) mkl_malloc(n * sizeof(double), 64);
+        x2 = (double *) mkl_malloc(n * sizeof(double), 64);
+        y = (double *) mkl_malloc(n * sizeof(double), 64);
+
+        err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE,
+                               stream, n, x1, d_zero, d_one);
+        assert(err == VSL_STATUS_OK);
+        err = vdRngExponential(VSL_RNG_METHOD_EXPONENTIAL_ICDF_ACCURATE,
+                               stream, n, x2, d_zero, d_one);
+        assert(err == VSL_STATUS_OK);
+    }
+
+#define TIME_CPE_HERE TIME_CPE(inner_loops, n, j, t0, t1, CPE, CPE_min)
+#define PRINT_LINE_HERE(impl, func) PRINT_LINE(impl, func, prefix, n, CPE_min)
+
+    int experiments;
+    for (experiments = 0; experiments < outer_loops; experiments++) {
 
 /**begin repeat
- *  #BEGIN =
-    size_t reps = REPS_N;
-    long int n = arraySize;
-    CPE_min = 100000000.0;
-    for (j=0; j < reps; j++) {
-      t0 = timer_rdtsc();
-    #
- *  #END = 
-      t1 = timer_rdtsc();
-      CPE = ((double)(t1 - t0)/n);
-      CPE_min = CPE < CPE_min ? CPE : CPE_min;
-    }
- #
- */
-
-/**begin repeat1
  *  #func = +, -, *, /#
  *  #vml = Add, Sub, Mul, Div#
  */
-  { @BEGIN@
-      vd@vml@(n, x1, x2, y);
-    @END@
-    printf("%s, VML, array@func@array, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+            vd@vml@(n, x1, x2, y);
+        }
+        PRINT_LINE_HERE("VML", "array@func@array");
 
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = x1[l] @func@ x2[l];
-      }
-    @END@
-    printf("%s, SVML, array@func@array, %ld, %.4g\n", prefix, n, CPE_min);
-  }
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for (l = 0; l < n; l++) {
+                y[l] = x1[l] @func@ x2[l];
+            }
+        }
+        PRINT_LINE_HERE("SVML", "array@func@array");
+/**end repeat**/
 
-
-/**end repeat1**/
-
-/**begin repeat1
+/**begin repeat
  *  #func=   +,   -,   *#
  *  #in1 =   n,   n,   n#
  *  #in2 =  x1,  x1,  x1#
@@ -130,64 +224,70 @@ int main(int argc, char **argv) {
  *  #in7 = 1.0, 1.0, 1.0#
  *  #in8 =   y,   y,   y#
  */
+        TIME_CPE_HERE {
+            vdLinearFrac(@in1@, @in2@, @in3@, @in4@, @in5@, @in6@, @in7@,
+                         @in8@);
+        }
+        PRINT_LINE_HERE("VML", "array@func@scalar");
 
-  { @BEGIN@
-      vdLinearFrac(@in1@, @in2@, @in3@, @in4@, @in5@, @in6@, @in7@, @in8@);
-    @END@
-    printf("%s, VML, array@func@scalar, %ld, %.4g\n", prefix, n, CPE_min);
-  }
-
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = x1[l] @func@ c;
-      }
-    @END@
-    printf("%s, SVML, array@func@scalar, %ld, %.4g\n", prefix, n, CPE_min);
-  }
-
-/**end repeat1**/
-
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = x1[l] / c;
-      }
-    @END@
-    printf("%s, SVML, array/scalar, %ld, %.4g\n", prefix, n, CPE_min);
-  }
-
-/**begin repeat1
- *  #func = log10, exp, erf, invsqrt#
- *  #vml =  Log10, Exp, Erf, InvSqrt#
- */
-
-  { @BEGIN@
-      vd@vml@(n, x1, y);
-    @END@
-    printf("%s, VML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
-  }
-
-  { @BEGIN@
-      #pragma omp parallel for
-      for(l=0; l < n; l++) {
-        y[l] = @func@(x1[l]);
-      }
-    @END@
-    printf("%s, SVML, @func@, %ld, %.4g\n", prefix, n, CPE_min);
-  }
-
-/**end repeat1**/
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for (l = 0; l < n; l++) {
+                y[l] = x1[l] @func@ c;
+            }
+        }
+        PRINT_LINE_HERE("SVML", "array@func@scalar");
 /**end repeat**/
- }
 
-  if (x1)
-    mkl_free(x1);
-  if (x2)
-    mkl_free(x2);
-  if (y)
-    mkl_free(y);
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for (l = 0; l < n; l++) {
+                y[l] = x1[l] / c;
+            }
+        }
+        PRINT_LINE_HERE("SVML", "array/scalar");
 
-  err = vslDeleteStream(&stream);
-  assert(err == VSL_STATUS_OK);
+/**begin repeat
+ *  #func = log10, exp, erf#
+ *  #vml =  Log10, Exp, Erf#
+ */
+        TIME_CPE_HERE {
+            vd@vml@(n, x1, y);
+        }
+        PRINT_LINE_HERE("VML", "@func@");
+
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for (l = 0; l < n; l++) {
+                y[l] = @func@(x1[l]);
+            }
+        }
+        PRINT_LINE_HERE("SVML", "@func@");
+/**end repeat**/
+
+        TIME_CPE_HERE {
+            vdInvSqrt(n, x1, y);
+        }
+        PRINT_LINE_HERE("VML", "invsqrt");
+
+        TIME_CPE_HERE {
+#pragma omp parallel for
+            for (l = 0; l < n; l++) {
+                y[l] = 1 / sqrt(x1[l]);
+            }
+        }
+        PRINT_LINE_HERE("SVML", "invsqrt");
+    }
+
+    if (x1)
+        mkl_free(x1);
+    if (x2)
+        mkl_free(x2);
+    if (y)
+        mkl_free(y);
+    if (experims)
+        free(experims);
+
+    err = vslDeleteStream(&stream);
+    assert(err == VSL_STATUS_OK);
 }
