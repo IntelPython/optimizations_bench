@@ -62,7 +62,7 @@ void Inv::compute() {
     dgetri(&n, x_mat, &lda, ipiv, &dlwork, &lwork, &info);
     assert(info == 0);
 
-    lwork = (int) dlwork;
+    lwork = (int) (1.01 * dlwork);
     double *work = make_mat(lwork);
     assert(work);
 
@@ -73,7 +73,7 @@ void Inv::compute() {
     mkl_free(work);
 }
 
-bool Inv::test() {
+bool Inv::test(bool verbose) {
     clean_args();
     make_args(test_size);
     copy_args();
@@ -99,6 +99,10 @@ bool Inv::test() {
     }
 
 cleanup:
+    if (verbose) {
+        std::cout << "A * A**-1 = (should be identity matrix)" << std::endl;
+        print_mat('c', c, n, n);
+    }
     mkl_free(c);
     return identity;
 }

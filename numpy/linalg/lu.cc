@@ -111,7 +111,7 @@ void LU::compute() {
     assert(info == 0);
 }
 
-bool LU::test() {
+bool LU::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(x_mat, x_mat_test, mat_size * sizeof(*x_mat));

@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
         Bench *real_bench = all_benches[bench];
 
         if (test) {
-            if (!real_bench->test()) {
+            if (!real_bench->test(verbose)) {
                 std::cout << "FAIL: " << bench << std::endl;
                 return_value = 1;
             } else {

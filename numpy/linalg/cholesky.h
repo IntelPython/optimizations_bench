@@ -16,7 +16,7 @@ class Cholesky : public Bench {
     void print_args();
     void print_result();
     void compute();
-    bool test();
+    bool test(bool verbose);
 
   private:
     double *x_mat, *r_mat;

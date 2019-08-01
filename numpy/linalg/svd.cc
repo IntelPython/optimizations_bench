@@ -65,7 +65,7 @@ void SVD::compute() {
     assert(info == 0);
 }
 
-bool SVD::test() {
+bool SVD::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(a_mat, x_mat_test, mat_size * sizeof(*a_mat));
