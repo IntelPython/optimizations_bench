@@ -8,16 +8,7 @@
 #include <cstring>
 #include <iostream>
 
-static const double x_mat_test[] = {
-    0.470442000675409,  -0.176333746005435, 0.481736547564898,
-    -0.291482508170914, 0.007410393215614,  0.805743972141035,
-    -0.44183986349643,  -0.739195206041762, -0.468344563609981};
-
-static const double r_mat_test[] = {
-    1.257751926455496,  -0.931809131348847, -0.309375898184227,
-    -1.046174905778332, -0.01588524263938,  -1.103418649248418,
-    0.46462060722515,   0.904147816602771,  -0.101770412852238};
-static const int test_size = 3;
+static const int test_size = 5;
 
 Inv::Inv() {
     x_mat = 0;
@@ -57,47 +48,74 @@ void Inv::make_args(int size) {
     ipiv = (int *) mkl_malloc(n * sizeof(int), 64);
     assert(ipiv);
 
-    // matrix for result
-    r_mat = make_mat(mat_size);
-
-    // identity matrix
-    identity = make_mat(mat_size);
-    memset(identity, 0, mat_size * sizeof(*identity));
-    for (int i = 0; i < mat_size; i += n + 1)
-        identity[i] = 1;
-
     copy_args();
 }
 
 void Inv::copy_args() {
     memcpy(x_mat, x_mat_init, mat_size * sizeof(*x_mat));
-    memcpy(r_mat, identity, mat_size * sizeof(*r_mat));
 }
 
 void Inv::compute() {
-    // Solve the equation X * X**-1 = I for X**-1.
     int info;
-    dgesv(&n, &n, x_mat, &n, ipiv, r_mat, &n, &info);
+
+    // compute pivoted LU decomposition
+    dgetrf(&n, &n, x_mat, &lda, ipiv, &info);
     assert(info == 0);
+
+    // perform workspace query for dgetri
+    int lwork = -1;
+    double dlwork;
+    dgetri(&n, x_mat, &lda, ipiv, &dlwork, &lwork, &info);
+    assert(info == 0);
+
+    lwork = (int) dlwork;
+    double *work = make_mat(lwork);
+    assert(work);
+
+    // actual call to dgetri.
+    dgetri(&n, x_mat, &lda, ipiv, work, &lwork, &info);
+    assert(info == 0);
+
+    mkl_free(work);
 }
 
 bool Inv::test() {
     clean_args();
     make_args(test_size);
     copy_args();
-    memcpy(x_mat, x_mat_test, mat_size * sizeof(*x_mat));
     compute();
 
-    return mat_equal(r_mat, r_mat_test, mat_size);
+    // X * X**-1 = I
+    static const double alpha = 1., beta = 0.;
+    static const char no_transpose = 'N';
+    double *c = make_mat(mat_size);
+    dgemm(&no_transpose, &no_transpose, &n, &n, &n, &alpha, x_mat, &n,
+          x_mat_init, &n, &beta, c, &n);
+
+    // verify that we got the identity matrix
+    bool identity = true;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            double expectation = (i == j) ? 1 : 0;
+            if (!mat_equal(&c[i*n + j], &expectation, 1)) {
+                identity = false;
+                goto cleanup;
+            }
+        }
+    }
+
+cleanup:
+    mkl_free(c);
+    return identity;
 }
 
 void Inv::print_args() {
     std::cout << "Inverse of " << n << "*" << n << " matrix A." << std::endl;
     std::cout << "A =" << std::endl;
-    print_mat('c', x_mat, n, n);
+    print_mat('c', x_mat_init, n, n);
 }
 
 void Inv::print_result() {
     std::cout << "A**-1 =" << std::endl;
-    print_mat('c', r_mat, n, n);
+    print_mat('c', x_mat, n, n);
 }

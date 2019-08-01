@@ -54,17 +54,23 @@ void Cholesky::make_args(int size) {
 }
 
 void Cholesky::copy_args() {
-    memcpy(r_mat, x_mat, mat_size * sizeof(*x_mat));
+    // copy moved to compute()
 }
 
 void Cholesky::compute() {
+    // perform copy here.
+    static const int one = 1;
+    dcopy(&mat_size, x_mat, &one, r_mat, &one);
+
     // compute cholesky decomposition
     int info;
-    const char uplo = 'U';
+    static const char uplo = 'U';
     dpotrf(&uplo, &n, r_mat, &lda, &info);
     assert(info == 0);
 
     // we only want an upper triangular matrix
+    // in scipy, this is done in *potrf wrapper.
+    // https://github.com/scipy/scipy/blob/maintenance/1.3.x/scipy/linalg/flapack_pos_def.pyf.src#L85
     for (int i = 0; i < n - 1; i++) {
         memset(&r_mat[i * n + i + 1], 0, (n - i - 1) * sizeof(*r_mat));
     }
