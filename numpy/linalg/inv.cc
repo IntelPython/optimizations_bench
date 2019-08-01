@@ -13,22 +13,16 @@ static const int test_size = 5;
 Inv::Inv() {
     x_mat = 0;
     x_mat_init = 0;
-    r_mat = 0;
-    identity = 0;
     ipiv = 0;
 }
 
 void Inv::clean_args() {
-    if (r_mat)
-        mkl_free(r_mat);
     if (ipiv)
         mkl_free(ipiv);
     if (x_mat)
         mkl_free(x_mat);
     if (x_mat_init)
         mkl_free(x_mat_init);
-    if (identity)
-        mkl_free(identity);
 }
 
 Inv::~Inv() {
