@@ -128,12 +128,17 @@ int main(int argc, char *argv[]) {
         Bench *real_bench = all_benches[bench];
 
         if (test) {
+            if (verbose)
+                std::cout << "---" << std::endl;
+
             if (!real_bench->test(verbose)) {
-                std::cout << "FAIL: " << bench << std::endl;
+                std::cout << "FAIL: " << bench;
                 return_value = 1;
             } else {
-                std::cout << "pass: " << bench << std::endl;
+                std::cout << "pass: " << bench;
             }
+            std::cout << std::endl;
+
             if (verbose) {
                 real_bench->print_args();
                 real_bench->print_result();
@@ -145,13 +150,13 @@ int main(int argc, char *argv[]) {
         if (verbose)
             real_bench->print_args();
 
+        // warm up
+        real_bench->copy_args();
+        real_bench->compute();
+
         for (int i = 0; i < samples; i++) {
 
             std::chrono::duration<double> timedelta(0.0);
-
-            // warm up
-            real_bench->copy_args();
-            real_bench->compute();
 
             for (int j = 0; j < reps; j++) {
                 real_bench->copy_args();
