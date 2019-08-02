@@ -56,8 +56,10 @@ void Cholesky::compute() {
     // we only want an upper triangular matrix
     // in scipy, this is done in *potrf wrapper.
     // https://github.com/scipy/scipy/blob/maintenance/1.3.x/scipy/linalg/flapack_pos_def.pyf.src#L85
-    for (int i = 0; i < n - 1; i++) {
-        memset(&r_mat[i * n + i + 1], 0, (n - i - 1) * sizeof(*r_mat));
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            r_mat[i * n + j] = 0.;
+        }
     }
 }
 
