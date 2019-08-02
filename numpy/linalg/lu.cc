@@ -86,6 +86,7 @@ void LU::compute() {
     memset(u_mat, 0, u_size * sizeof(double));
 
     // extract L and U matrix elements from r_mat
+    // https://github.com/scipy/scipy/blob/maintenance/1.3.x/scipy/linalg/src/lu.f#L31-L45
     for (int j = 0; j < mn_min; j++) {
         l_mat[j * ld_l + j] = 1.;
 #pragma ivdep
@@ -108,12 +109,13 @@ void LU::compute() {
         }
     }
 
-    // permute_l=True
-    // make a diagonal matrix (m,m)
+    // permute_l=False
+    // make a diagonal matrix (m,m)...
     memset(p_mat, 0, p_size * sizeof(double));
     for (int i = 0; i < m; i++)
         p_mat[i * (m + 1)] = 1.0;
 
+    // ...and permute that matrix instead of L
     static const int one = 1, neg_one = -1;
     dlaswp(&m, p_mat, &m, &one, &mn_min, ipiv, &neg_one);
     assert(info == 0);
