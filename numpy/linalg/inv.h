@@ -13,13 +13,13 @@ class Inv : public Bench {
     void make_args(int size);
     void copy_args();
     void clean_args();
-    bool test();
+    bool test(bool verbose);
     void print_args();
     void print_result();
     void compute();
 
   private:
-    double *x_mat, *r_mat, *x_mat_init, *identity;
+    double *x_mat, *x_mat_init;
     int *ipiv;
     int n, lda, mat_size;
 };

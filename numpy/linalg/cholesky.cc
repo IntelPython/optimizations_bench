@@ -8,22 +8,7 @@
 #include <cstring>
 #include <iostream>
 
-static const double x_mat_test[] = {
-    5.551063927745538,  0.034194385271978, -0.276508795460738,
-    0.034194385271978,  4.704686460853461, 0.087572555571367,
-    -0.276508795460738, 0.087572555571367, 6.07658590927362};
-
-static const double r_mat_test[] = {2.356069593145656,
-                                    0.,
-                                    0.,
-                                    0.014513317166631,
-                                    2.16898036516661,
-                                    0.,
-                                    -0.117360198639788,
-                                    0.041160281019929,
-                                    2.461933858639425};
-
-static const int test_size = 3;
+static const int test_size = 5;
 
 Cholesky::Cholesky() {
     x_mat = r_mat = 0;
@@ -45,8 +30,12 @@ void Cholesky::make_args(int size) {
     for (int i = 0; i < n; i++) {
         r_mat[i * n + i] = 1;
     }
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, n, n, n, 1.0, x_mat, n,
-                x_mat, n, n, r_mat, n);
+
+    static const char uplo = 'U';
+    static const char trans = 'T';
+    static const double alpha = 1.;
+    static const double beta = n;
+    dsyrk(&uplo, &trans, &n, &n, &alpha, x_mat, &n, &beta, r_mat, &n);
 
     // we now have r_mat = x_mat * x_mat' + n * np.eye(n)
     // copy back into x_mat
@@ -54,41 +43,73 @@ void Cholesky::make_args(int size) {
 }
 
 void Cholesky::copy_args() {
-    memcpy(r_mat, x_mat, mat_size * sizeof(*x_mat));
+    // copy moved to compute()
 }
 
 void Cholesky::compute() {
+    // perform copy here.
+    static const int one = 1;
+    dcopy(&mat_size, x_mat, &one, r_mat, &one);
+
     // compute cholesky decomposition
     int info;
-    const char uplo = 'U';
+    static const char uplo = 'U';
     dpotrf(&uplo, &n, r_mat, &lda, &info);
     assert(info == 0);
 
     // we only want an upper triangular matrix
-    for (int i = 0; i < n - 1; i++) {
-        memset(&r_mat[i * n + i + 1], 0, (n - i - 1) * sizeof(*r_mat));
+    // in scipy, this is done in *potrf wrapper.
+    // https://github.com/scipy/scipy/blob/maintenance/1.3.x/scipy/linalg/flapack_pos_def.pyf.src#L85
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            r_mat[i * n + j] = 0.;
+        }
     }
 }
 
-bool Cholesky::test() {
+bool Cholesky::test(bool verbose) {
     clean_args();
     make_args(test_size);
-    memcpy(x_mat, x_mat_test, mat_size * sizeof(*x_mat));
     copy_args();
     compute();
 
-    return mat_equal(r_mat, r_mat_test, mat_size);
+    // verify that r_mat is upper triangular
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (r_mat[i * n + j] != 0.) {
+                if (verbose) {
+                    std::cerr << "r_mat is not upper triangular!" << std::endl;
+                }
+                return false;
+            }
+        }
+    }
+
+    // try to reconstruct x_mat from its Cholesky decomposition
+    static const double alpha = 1., beta = 0.;
+    static const char uplo = 'U';
+    static const char trans = 'T';
+    double *c = make_mat(mat_size);
+    dsyrk(&uplo, &trans, &n, &n, &alpha, r_mat, &n, &beta, c, &n);
+
+    if (verbose) {
+        std::cout << "U* * U = (should be equal to A)" << std::endl;
+        print_mat('c', c, n, n);
+    }
+    bool equal = mat_equal(c, x_mat, mat_size);
+    mkl_free(c);
+    return equal;
 }
 
 void Cholesky::print_args() {
-    std::cout << "Cholesky decomposition, A = LL*, of a "
+    std::cout << "Cholesky decomposition, A = U* * U, of a "
               << "Hermitian positive-definite matrix A." << std::endl;
     std::cout << "A = " << std::endl;
     print_mat('c', x_mat, n, n);
 }
 
 void Cholesky::print_result() {
-    std::cout << "L = " << std::endl;
+    std::cout << "U = " << std::endl;
     print_mat('c', r_mat, n, n);
 }
 

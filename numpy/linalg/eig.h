@@ -14,7 +14,7 @@ class Eig : public Bench {
     void make_args(int size);
     void copy_args();
     void clean_args();
-    bool test();
+    bool test(bool verbose);
     void print_args();
     void print_result();
     void compute();

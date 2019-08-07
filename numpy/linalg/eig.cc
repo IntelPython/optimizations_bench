@@ -114,7 +114,7 @@ void Eig::compute() {
     }
 }
 
-bool Eig::test() {
+bool Eig::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(a_mat, a_mat_test, mat_size * sizeof(*a_mat));

@@ -70,7 +70,7 @@ void QR::compute() {
     }
 }
 
-bool QR::test() {
+bool QR::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(x_mat_init, x_mat_test, mat_size * sizeof(*x_mat));

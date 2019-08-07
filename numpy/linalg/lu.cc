@@ -75,7 +75,8 @@ void LU::copy_args() {
 
 void LU::compute() {
     // compute pivoted lu decomposition
-    int info = LAPACKE_dgetrf(LAPACK_COL_MAJOR, m, n, r_mat, lda, ipiv);
+    int info;
+    dgetrf(&m, &n, r_mat, &lda, ipiv, &info);
     assert(info == 0);
 
     int ld_l = m;
@@ -85,33 +86,42 @@ void LU::compute() {
     memset(u_mat, 0, u_size * sizeof(double));
 
     // extract L and U matrix elements from r_mat
+    // https://github.com/scipy/scipy/blob/maintenance/1.3.x/scipy/linalg/src/lu.f#L31-L45
+    for (int j = 0; j < mn_min; j++) {
+        l_mat[j * ld_l + j] = 1.;
 #pragma ivdep
-    for (int i = 0; i < m; i++) {
-#pragma ivdep
-        for (int j = 0; j < n; j++) {
-            if (j < mn_min) {
-                if (i == j) {
-                    l_mat[j * ld_l + i] = 1.0;
-                } else if (i > j) {
-                    l_mat[j * ld_l + i] = r_mat[j * lda + i];
-                }
-            }
-            if (i < mn_min && i <= j) {
-                u_mat[j * ld_u + i] = r_mat[j * lda + i];
-            }
+        for (int i = j + 1; i < m; i++) {
+            l_mat[j * ld_l + i] = r_mat[j * lda + i];
         }
     }
 
-    // make a diagonal matrix (m,m)
+    for (int j = 0; j < mn_min; j++) {
+#pragma ivdep
+        for (int i = 0; i <= j; i++) {
+            u_mat[j * ld_u + i] = r_mat[j * lda + i];
+        }
+    }
+
+    for (int j = mn_min; j < n; j++) {
+#pragma ivdep
+        for (int i = 0; i < mn_min; i++) {
+            u_mat[j * ld_u + i] = r_mat[j * lda + i];
+        }
+    }
+
+    // permute_l=False
+    // make a diagonal matrix (m,m)...
     memset(p_mat, 0, p_size * sizeof(double));
     for (int i = 0; i < m; i++)
         p_mat[i * (m + 1)] = 1.0;
 
-    info = LAPACKE_dlaswp(LAPACK_COL_MAJOR, m, p_mat, m, 1, mn_min, ipiv, -1);
+    // ...and permute that matrix instead of L
+    static const int one = 1, neg_one = -1;
+    dlaswp(&m, p_mat, &m, &one, &mn_min, ipiv, &neg_one);
     assert(info == 0);
 }
 
-bool LU::test() {
+bool LU::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(x_mat, x_mat_test, mat_size * sizeof(*x_mat));

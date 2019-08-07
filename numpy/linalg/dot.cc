@@ -68,7 +68,7 @@ void Dot::compute() {
                 a_mat, k, b_mat, n, beta, r_mat, n);
 }
 
-bool Dot::test() {
+bool Dot::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(a_mat, a_mat_test, m * k * sizeof(*a_mat));

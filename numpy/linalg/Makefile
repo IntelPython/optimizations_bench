@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: MIT
 
 CXX = icc
-CXXFLAGS = -O3 -g -xCORE-AVX2 -axCOMMON-AVX512 -qopenmp \
+CXXFLAGS = -O3 -g -xCORE-AVX2 -axCOMMON-AVX512 \
 	   -qopt-report=5 -qopt-report-phase=openmp,par,vec
-LDFLAGS = -lmkl_rt -qopenmp
+LDFLAGS = -lmkl_rt
 
 TARGET = linalg
 BENCHES = cholesky det dot eig inv lu qr svd
 SOURCES = $(addsuffix .cc,$(BENCHES)) linalg.cc
 
 ifneq ($(CONDA_PREFIX),)
-	LDFLAGS += -L$(CONDA_PREFIX)/lib
+	LDFLAGS += -L$(CONDA_PREFIX)/lib -Wl,-rpath,$(CONDA_PREFIX)
 	CXXFLAGS += -I$(CONDA_PREFIX)/include
 endif
 

@@ -60,7 +60,7 @@ void Det::compute() {
     result = t;
 }
 
-bool Det::test() {
+bool Det::test(bool verbose) {
     clean_args();
     make_args(test_size);
     memcpy(x_mat, x_mat_test, mat_size * sizeof(*x_mat));

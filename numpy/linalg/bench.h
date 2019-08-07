@@ -135,5 +135,5 @@ class Bench {
     virtual void print_args() = 0;
     virtual void print_result() = 0;
     virtual void compute() = 0;
-    virtual bool test() {return false;};
+    virtual bool test(bool verbose) {return false;};
 };
