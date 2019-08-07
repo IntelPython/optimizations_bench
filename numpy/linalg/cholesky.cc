@@ -87,11 +87,10 @@ bool Cholesky::test(bool verbose) {
 
     // try to reconstruct x_mat from its Cholesky decomposition
     static const double alpha = 1., beta = 0.;
-    static const char no_transpose = 'N';
-    static const char transpose = 'T';
+    static const char uplo = 'U';
+    static const char trans = 'T';
     double *c = make_mat(mat_size);
-    dgemm(&transpose, &no_transpose, &n, &n, &n, &alpha, r_mat, &n,
-          r_mat, &n, &beta, c, &n);
+    dsyrk(&uplo, &trans, &n, &n, &alpha, r_mat, &n, &beta, c, &n);
 
     if (verbose) {
         std::cout << "U* * U = (should be equal to A)" << std::endl;
