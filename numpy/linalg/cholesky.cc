@@ -30,8 +30,12 @@ void Cholesky::make_args(int size) {
     for (int i = 0; i < n; i++) {
         r_mat[i * n + i] = 1;
     }
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, n, n, n, 1.0, x_mat, n,
-                x_mat, n, n, r_mat, n);
+
+    static const char uplo = 'U';
+    static const char trans = 'T';
+    static const double alpha = 1.;
+    static const double beta = n;
+    dsyrk(&uplo, &trans, &n, &n, &alpha, x_mat, &n, &beta, r_mat, &n);
 
     // we now have r_mat = x_mat * x_mat' + n * np.eye(n)
     // copy back into x_mat
