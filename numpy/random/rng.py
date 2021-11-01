@@ -6,7 +6,7 @@ import numpy as np
 try:
     import mkl_random as rnd
     mkl = True
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     import numpy.random as rnd
     mkl = False
 import timeit
@@ -28,7 +28,12 @@ def sample_beta(rs, sz):
 
 
 def sample_randint(rs, sz):
-    rs.randint(0, 100, size=sz, dtype=np.intc)
+    if hasattr(rs, 'randint'):
+        rs.randint(0, 100, size=sz, dtype=np.intc)
+    elif hasattr(rs, 'integers'):
+        rs.integers(0, 100, size=sz, dtype=np.intc)
+    else:
+        raise RuntimeError
 
 
 def sample_poisson(rs, sz):
@@ -47,7 +52,7 @@ def main():
     if mkl:
         brngs = ['WH', 'PHILOX4X32X10', 'MT2203', 'MCG59', 'MCG31', 'MT19937', 'MRG32K3A', 'SFMT19937', 'R250']
     else:
-        brngs = [None]
+        brngs = [np.random.MT19937, np.random.Philox]
     samplers = {'uniform': sample_uniform, 'normal': sample_normal, 'gamma': sample_gamma, 'beta': sample_beta,
                 'randint': sample_randint, 'poisson': sample_poisson, 'hypergeom': sample_hypergeom}
     multipliers = {'uniform': 10, 'normal': 2, 'gamma': 1, 'beta': 1, 'randint': 10, 'poisson': 5, 'hypergeom': 1}
@@ -56,10 +61,10 @@ def main():
         m = multipliers[sfn]
         times_list = []
         for __ in range(OUTER_REPS):
-            if brng_name:
+            if mkl:
                 rs = rnd.RandomState(123, brng=brng_name)
             else:
-                rs = rnd.RandomState(123)
+                rs = rnd.Generator(brng_name(seed=123))
             t0 = timeit.default_timer()
             for __ in range(INNER_REPS):
                 func(rs, (m*100, 1000))
