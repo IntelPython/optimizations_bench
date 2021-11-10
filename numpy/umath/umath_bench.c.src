@@ -157,6 +157,25 @@ int main(int argc, char *argv[]) {
         }
     }
 
+#ifdef _VML_ACCURACY_EP_
+    vmlSetMode(VML_EP | VML_ERRMODE_DEFAULT | VML_FTZDAZ_OFF);
+    if (verbose) {
+	printf("@ Using vmlSetMode(VML_EP | VML_ERRMODE_DEFAULT | VML_FTZDAZ_OFF)\n");
+    }
+#elif defined(_VML_ACCURACY_HA_)
+    vmlSetMode(VML_HA | VML_ERRMODE_DEFAULT | VML_FTZDAZ_OFF);
+    if (verbose) {
+	printf("@ Using vmlSetMode(VML_HA | VML_ERRMODE_DEFAULT | VML_FTZDAZ_OFF)\n");
+    }
+#elif defined(_VML_ACCURACY_LA_)
+    vmlSetMode(VML_LA | VML_ERRMODE_DEFAULT | VML_FTZDAZ_OFF);
+    if (verbose) {
+	printf("@ Using vmlSetMode(VML_LA | VML_ERRMODE_DEFAULT | VML_FTZDAZ_OFF)\n");
+    }
+#else
+#error "set _VML_ACCURACY_EP_, _VML_ACCURACY_HA_, or _VML_ACCURACY_LA_
+#endif
+
     if (verbose) {
         printf("@ MKL: ");
         _print_mkl_version();
