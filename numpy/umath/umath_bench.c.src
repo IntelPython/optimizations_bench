@@ -256,6 +256,7 @@ int main(int argc, char *argv[]) {
             }
         }
         PRINT_LINE_HERE("SVML", "array@func@scalar");
+        PRINT_LINE_HERE("SVML", "scalar@func@array");
 /**end repeat**/
 
         TIME_CPE_HERE {
