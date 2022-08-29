@@ -4,9 +4,9 @@
 
 BENCHMARKS = rng
 SOURCES = $(addsuffix .c,$(BENCHMARKS))
-CC = icc
+CC = icx
 CLANG_FORMAT = clang-format
-CFLAGS += -m64 -fPIC -fomit-frame-pointer -xSSE4.2 -axCORE-AVX2,CORE-AVX512 \
+CFLAGS += -m64 -fPIC -fomit-frame-pointer -xSSE4.2 -xCORE-AVX2 -xCORE-AVX512 \
 	  -O3 -fp-model fast=2 -fimf-precision=high -prec-sqrt -prec-div \
 	  -fprotect-parens
 LDFLAGS += -lmkl_rt
