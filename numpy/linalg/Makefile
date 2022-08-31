@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-CXX = icx
+CXX = icpx
 CXXFLAGS = -O3 -g -xCORE-AVX2 -xCOMMON-AVX512 -qopt-report
 LDFLAGS = -lmkl_rt
 
@@ -15,7 +15,7 @@ ifneq ($(CONDA_PREFIX),)
 	CXXFLAGS += -I$(CONDA_PREFIX)/include
 endif
 
-#override CXXFLAGS += -std=c++11
+override CXXFLAGS += -std=c++11
 
 CLANG_FORMAT = clang-format
 
