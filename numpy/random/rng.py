@@ -49,6 +49,12 @@ INNER_REPS=512
 
 def main():
     import itertools
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--text',  required=False, default="IntelPython",     help="Print with each result")
+
+    args = parser.parse_args()
+
     if mkl:
         brngs = ['WH', 'PHILOX4X32X10', 'MT2203', 'MCG59', 'MCG31', 'MT19937', 'MRG32K3A', 'SFMT19937', 'R250']
     else:
@@ -70,7 +76,7 @@ def main():
                 func(rs, (m*100, 1000))
             t1 = timeit.default_timer()
             times_list.append(t1-t0)
-        print("IntelPython,{brng_name},{dist_name},{time:.5f}".format(brng_name=brng_name, dist_name=sfn, time=min(times_list)))
+        print("{python_impl},{samples},{brng_name},{dist_name},{time:.5f}".format(python_impl=args.text,samples=m*100*1000,brng_name=brng_name, dist_name=sfn, time=min(times_list)))
 
 
 if __name__ == '__main__':

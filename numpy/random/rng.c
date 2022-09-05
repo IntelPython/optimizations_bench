@@ -187,7 +187,7 @@ int main(void) {
                     if (times[i] < min_time)
                         min_time = times[i];
 
-                printf("Native-C,%s,%s,%.5f\n", brng_names[brng_idx],
+                printf("Native-C,%d,%s,%s,%.5f\n", sz,  brng_names[brng_idx],
                        dist_names[fn_idx], min_time);
             }
         }
