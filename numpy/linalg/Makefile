@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 CXX = icpx
-CXXFLAGS = -O3 -g -xCORE-AVX2 -xCOMMON-AVX512 -qopt-report
+CXXFLAGS = -O3 -g -xSSE4.2 -axCORE-AVX2,COMMON-AVX512 -qopt-report
 LDFLAGS = -lmkl_rt
 
 TARGET = linalg

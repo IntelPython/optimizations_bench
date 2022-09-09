@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 CC = icx
-CFLAGS = -qopenmp -xCORE-AVX2 -xCOMMON-AVX512 -O3 \
+CFLAGS = -qopenmp -xSSE4.2 -axCORE-AVX2,COMMON-AVX512 -O3 \
 	 -g -lmkl_rt -Wall -pedantic
 
 ifneq ($(CONDA_PREFIX),)
