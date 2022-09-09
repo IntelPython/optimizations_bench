@@ -47,20 +47,21 @@ def main():
     import itertools
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--text',  required=False, default="IntelPython",     help="Print with each result")
-    parser.add_argument('--rng',  required=False, default="mkl", choices=['mkl', 'numpy'], help='RNG implementation\n'
+    parser.add_argument('--prefix',  required=False, default="IntelPython",     help="Print with each result")
+    parser.add_argument('--impl',  required=False, default="mkl", choices=['mkl', 'numpy'], help='RNG implementation\n'
                                                                  'choices:\n'
                                                                  'mkl: mkl_random.RandomState to be used\n'
                                                                  'numpy: numpy.Generator to be used')
 
     args = parser.parse_args()
 
-    if args.rng == 'mkl':
+    if args.impl == 'mkl':
         try:
             import mkl_random as rnd
             mkl = True
         except (ImportError, ModuleNotFoundError) as e:
             print(str(e))
+            print('mkl_random is chosed for benchmark, however it is not found in current environemnt')
             sys.exit(1)
     else:
         import numpy.random as rnd
@@ -89,7 +90,7 @@ def main():
                 func(rs, (m*100, 1000))
             t1 = timeit.default_timer()
             times_list.append(t1-t0)
-        print(f"{args.text},{m*100*1000},{brng_name if mkl else brng_name().__class__.__name__},{sfn},{min(times_list):.5f}")
+        print(f"{args.prefix},{m*100*1000},{brng_name if mkl else brng_name().__class__.__name__},{sfn},{min(times_list):.5f}")
 
 
 if __name__ == '__main__':
