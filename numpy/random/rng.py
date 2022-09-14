@@ -48,20 +48,20 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix',  required=False, default="IntelPython",     help="Print with each result")
-    parser.add_argument('--impl',  required=False, default="mkl", choices=['mkl', 'numpy'], help='RNG implementation\n'
+    parser.add_argument('--impl',  required=False, default="mkl_random", choices=['mkl_random', 'numpy'], help='RNG implementation\n'
                                                                  'choices:\n'
-                                                                 'mkl: mkl_random.RandomState to be used\n'
+                                                                 'mkl_random: mkl_random.RandomState to be used\n'
                                                                  'numpy: numpy.Generator to be used')
 
     args = parser.parse_args()
 
-    if args.impl == 'mkl':
+    if args.impl == 'mkl_random':
         try:
             import mkl_random as rnd
             mkl = True
         except (ImportError, ModuleNotFoundError) as e:
             print(str(e))
-            print('mkl_random is chosed for benchmark, however it is not found in current environemnt')
+            print('mkl_random is chosen for benchmark, however it is not found in current environemnt')
             sys.exit(1)
     else:
         import numpy.random as rnd
