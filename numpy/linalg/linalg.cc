@@ -18,6 +18,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <map>
+#include <vector>
 
 static const struct option longopts[] = {
     {"size", required_argument, nullptr, 'n'},

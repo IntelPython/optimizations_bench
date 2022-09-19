@@ -2,9 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
-CC = icc
-CFLAGS = -qopenmp -xCORE-AVX2 -axCOMMON-AVX512 -O3 \
-	 -g -lmkl_rt -Wall -pedantic
+CC = icx
+CFLAGS = -qopenmp -xSSE4.2 -axCORE-AVX2,CORE-AVX512 -O3 \
+	 -g -Wall -pedantic
+LDFLAGS += -lmkl_rt
 
 ifneq ($(CONDA_PREFIX),)
 		CFLAGS += -I$(CONDA_PREFIX)/include
@@ -36,7 +37,7 @@ compile: $(TARGET)
 
 
 $(TARGET): umath_bench.c
-	$(CC) umath_bench.c $(CPPFLAGS) $(CFLAGS) -o $(TARGET)
+	$(CC) umath_bench.c $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $(TARGET)
 
 umath_bench.c: umath_bench.c.src
 	$(PYTHON) -m numpy.distutils.conv_template umath_bench.c.src

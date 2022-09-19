@@ -3,13 +3,8 @@
 # SPDX-License-Identifier: MIT
 
 import numpy as np
-try:
-    import mkl_random as rnd
-    mkl = True
-except (ImportError, ModuleNotFoundError):
-    import numpy.random as rnd
-    mkl = False
 import timeit
+import sys
 
 def sample_uniform(rs, sz):
     rs.uniform(-1, 1, size=sz)
@@ -46,31 +41,56 @@ def sample_hypergeom(rs, sz):
 
 OUTER_REPS=6
 INNER_REPS=512
+SEED=123
 
 def main():
     import itertools
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--prefix',  required=False, default="IntelPython",     help="Print with each result")
+    parser.add_argument('--impl',  required=False, default="mkl_random", choices=['mkl_random', 'numpy'], help='RNG implementation\n'
+                                                                 'choices:\n'
+                                                                 'mkl_random: mkl_random.RandomState to be used\n'
+                                                                 'numpy: numpy.Generator to be used')
+
+    args = parser.parse_args()
+
+    if args.impl == 'mkl_random':
+        try:
+            import mkl_random as rnd
+            mkl = True
+        except (ImportError, ModuleNotFoundError) as e:
+            print(str(e))
+            print('mkl_random is chosen for benchmark, however it is not found in current environemnt')
+            sys.exit(1)
+    else:
+        import numpy.random as rnd
+        mkl = False
+
     if mkl:
         brngs = ['WH', 'PHILOX4X32X10', 'MT2203', 'MCG59', 'MCG31', 'MT19937', 'MRG32K3A', 'SFMT19937', 'R250']
     else:
         brngs = [np.random.MT19937, np.random.Philox]
+
     samplers = {'uniform': sample_uniform, 'normal': sample_normal, 'gamma': sample_gamma, 'beta': sample_beta,
                 'randint': sample_randint, 'poisson': sample_poisson, 'hypergeom': sample_hypergeom}
     multipliers = {'uniform': 10, 'normal': 2, 'gamma': 1, 'beta': 1, 'randint': 10, 'poisson': 5, 'hypergeom': 1}
+
     for brng_name, sfn in itertools.product(brngs, samplers.keys()):
         func = samplers[sfn]
         m = multipliers[sfn]
         times_list = []
         for __ in range(OUTER_REPS):
             if mkl:
-                rs = rnd.RandomState(123, brng=brng_name)
+                rs = rnd.RandomState(SEED, brng=brng_name)
             else:
-                rs = rnd.Generator(brng_name(seed=123))
+                rs = rnd.Generator(brng_name(seed=SEED))
             t0 = timeit.default_timer()
             for __ in range(INNER_REPS):
                 func(rs, (m*100, 1000))
             t1 = timeit.default_timer()
             times_list.append(t1-t0)
-        print("IntelPython,{brng_name},{dist_name},{time:.5f}".format(brng_name=brng_name, dist_name=sfn, time=min(times_list)))
+        print(f"{args.prefix},{m*100*1000},{brng_name if mkl else brng_name().__class__.__name__},{sfn},{min(times_list):.5f}")
 
 
 if __name__ == '__main__':
