@@ -1,0 +1,39 @@
+name: Run benchmark tests
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  run_test:
+    name: Run optimization bench on intel_dev
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python: ['3.9', '3.10', '3.11']
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set pkgs_dirs
+        run: |
+          echo "pkgs_dirs: [~/.conda/pkgs]" >> ~/.condarc
+      
+      - name: Add conda to system path
+        run: echo $CONDA/bin >> $GITHUB_PATH
+
+      - name: Create test environment
+        run: conda env create -f environments/intel.yaml
+
+      - name: Run scripts
+        run: |
+          conda activate intel_dev
+          python run_tests.py

@@ -1,0 +1,15 @@
+name: intel_env
+channels:
+  - intel
+  - conda-forge
+  - nodefaults
+dependencies:
+  - numpy
+  - numexpr
+  - numba
+  - scikit-learn
+  - cython
+  - pip
+  - pip:
+    - dask
+#    - rdtsc

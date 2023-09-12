@@ -1,0 +1,17 @@
+name: stock_env
+channels:
+  - intel
+  - conda-forge
+  - nodefaults
+dependencies:
+  - llvmlite
+  - cython
+  - pip
+  - pip:
+    - numpy
+    - scikit-learn
+    - toolz
+    - numexpr
+#    - rdtsc
+    - numba
+    - dask
