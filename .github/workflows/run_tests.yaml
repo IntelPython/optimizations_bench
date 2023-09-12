@@ -35,5 +35,6 @@ jobs:
 
       - name: Run scripts
         run: |
+          . $CONDA/etc/profile.d/conda.sh
           conda activate intel_dev
           python run_tests.py
