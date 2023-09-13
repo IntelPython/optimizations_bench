@@ -5,7 +5,7 @@ channels:
   - nodefaults
 dependencies:
   - numpy
-  - numexpr
+  - conda-forge::numexpr=*=mkl*
   - numba
   - scikit-learn
   - cython
