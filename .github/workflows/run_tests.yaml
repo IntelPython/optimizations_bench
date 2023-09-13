@@ -30,11 +30,20 @@ jobs:
       - name: Add conda to system path
         run: echo $CONDA/bin >> $GITHUB_PATH
 
-      - name: Create test environment
+      - name: Create Intel test environment
         run: conda env create -f environments/intel.yaml
 
-      - name: Run scripts
+      - name: Create stock test environment
+        run: conda env create -f environments/stock.yaml
+
+      - name: Run tests in Intel environment
         run: |
           . $CONDA/etc/profile.d/conda.sh
-          conda activate intel_dev
+          conda activate intel_env
+          python run_tests.py
+
+      - name: Run tests in stock environment
+        run: |
+          . $CONDA/etc/profile.d/conda.sh
+          conda activate stock_env
           python run_tests.py
