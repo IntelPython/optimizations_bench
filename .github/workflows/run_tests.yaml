@@ -1,0 +1,53 @@
+name: Run benchmark tests
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  run_test:
+    name: Run optimization bench on intel_dev
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python: ['3.10']
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set pkgs_dirs
+        run: |
+          echo "pkgs_dirs: [~/.conda/pkgs]" >> ~/.condarc
+      
+      - name: Add conda to system path
+        run: echo $CONDA/bin >> $GITHUB_PATH
+
+      - name: Create Intel test environment
+        run: conda env create -f environments/intel.yaml
+
+      - name: Create stock test environment
+        run: conda env create -f environments/stock.yaml
+
+      - name: Run tests in Intel environment
+        run: |
+          . $CONDA/etc/profile.d/conda.sh
+          conda activate intel_env || exit 1
+          # This is toy run for GH action,
+          # The arguments are really bad for real perf testing, use default arguments instead
+          python numpy/umath/umath_mem_bench.py -v --size 10 --goal-time 0.01 --repeats 1 || exit 1
+
+      - name: Run tests in stock environment
+        run: |
+          . $CONDA/etc/profile.d/conda.sh
+          conda activate stock_env || exit 1
+          # This is toy run for GH action,
+          # The arguments are really bad for real perf testing, use default arguments instead
+          python numpy/umath/umath_mem_bench.py -v --size 10 --goal-time 0.01 --repeats 1 || exit 1
