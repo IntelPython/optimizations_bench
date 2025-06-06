@@ -1,7 +1,7 @@
 [![Run benchmark tests](https://github.com/IntelPython/optimizations_bench/actions/workflows/run_tests.yaml/badge.svg)](https://github.com/IntelPython/optimizations_bench/actions/workflows/run_tests.yaml)
 
 # Optimization Benchmarks
-Collection of performance benchmarks used to present optimizations implemented for Intel(R) Distribution for Python*
+Collection of performance benchmarks used to present optimizations implemented for Intel(R) Distribution for Python*.
 
 ## Environment Setup
 To install Python environments from Intel channel along with pip-installed packages

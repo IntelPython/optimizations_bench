@@ -1,6 +1,6 @@
 name: stock_env
 channels:
-  - intel
+  - https://software.repos.intel.com/python/conda/
   - conda-forge
   - nodefaults
 dependencies:
